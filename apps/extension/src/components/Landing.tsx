@@ -417,6 +417,14 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                             <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-gray-600">Next Gen Sidebar Sync</p>
                         </div>
                     </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowCredits(true)}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-200 transition-colors hover:bg-blue-500/20"
+                        title="View Guide"
+                    >
+                        Guide
+                    </button>
                 </div>
 
                 <div className="mb-4 flex rounded-2xl border border-white/5 bg-[#111] p-1 shadow-inner">
@@ -473,7 +481,7 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                                     : 'bg-gray-900/40 text-gray-600 hover:text-gray-400 border border-gray-700/50'
                             }`}
                         >
-                            Local
+                            🏠 Local
                         </button>
                     </div>
 

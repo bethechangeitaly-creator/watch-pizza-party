@@ -222,11 +222,12 @@ function Popup() {
                 }}>
                     {(() => {
                         const roomCode = (session.roomId || '').trim();
-                        const serverShareText = serverUrl ? `Server URL: ${serverUrl}` : '';
                         const roomShareText = [
-                            'Watch Pizza Party Invite',
-                            serverUrl ? `Server URL: ${serverUrl}` : '',
-                            roomCode ? `Room Code: ${roomCode}` : ''
+                            '🍕 Watch Pizza Party Invite',
+                            '',
+                            roomCode ? `Room Code: ${roomCode}` : '',
+                            '',
+                            'Open the Watch Pizza Party extension and join with this code!'
                         ].filter(Boolean).join('\n');
 
                         const iconButtonStyle: React.CSSProperties = {
@@ -257,35 +258,6 @@ function Popup() {
                                 color: session.isHost ? '#000' : '#93c5fd',
                                 letterSpacing: '0.04em',
                             }}>{session.isHost ? 'HOST' : 'VIEWER'}</span>
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>Server</span>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', opacity: serverUrl ? 1 : 0.45 }}>
-                                <button
-                                    type="button"
-                                    onClick={() => { void copyValue(serverShareText, 'server-share'); }}
-                                    disabled={!serverUrl}
-                                    title={serverShareText ? 'Copy server share text' : 'Server unavailable'}
-                                    style={{ ...iconButtonStyle, cursor: serverUrl ? 'pointer' : 'default' }}
-                                >
-                                    <ShareGlyph copied={copiedKey === 'server-share'} />
-                                </button>
-                            </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{
-                                width: 7,
-                                height: 7,
-                                borderRadius: '50%',
-                                background: session.connected ? '#22c55e' : '#ef4444',
-                                boxShadow: session.connected ? '0 0 8px rgba(34,197,94,0.6)' : '0 0 8px rgba(239,68,68,0.5)',
-                                display: 'inline-block',
-                            }} />
-                            <span style={{ fontSize: 11, fontWeight: 700, color: session.connected ? '#86efac' : '#fca5a5' }}>
-                                {session.connected ? 'Connected' : 'Reconnecting'}
-                            </span>
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
