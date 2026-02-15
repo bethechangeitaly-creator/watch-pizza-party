@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, ChevronRight, User as UserIcon, HelpCircle, Copy, Check, X } from 'lucide-react';
+import { Loader2, ChevronRight, User as UserIcon, Copy, Check, X } from 'lucide-react';
 import { CreditsModal } from './CreditsModal';
 
 // Locally defined to avoid monorepo build sync issues
@@ -246,26 +246,7 @@ function isLocalOnlyServerUrl(raw: string): boolean {
     }
 }
 
-const START_SERVER_COMMAND = 'npm run dev:server';
-const INSTALL_NGROK_MAC_COMMAND = 'brew install ngrok/ngrok/ngrok';
-const INSTALL_NGROK_WINDOWS_WINGET_COMMAND = 'winget install --id Ngrok.Ngrok -e';
-const INSTALL_NGROK_WINDOWS_CHOCO_COMMAND = 'choco install ngrok -y';
-const NGROK_AUTHTOKEN_COMMAND = 'ngrok config add-authtoken YOUR_TOKEN_HERE';
-const START_NGROK_COMMAND = 'ngrok http 3005';
 const LAST_ROOM_CODE_STORAGE_KEY = 'watchparty_last_room_code';
-
-type GuideOs = 'windows' | 'mac' | 'other';
-
-function detectGuideOs(): GuideOs {
-    try {
-        const ua = navigator.userAgent.toLowerCase();
-        if (ua.includes('windows')) return 'windows';
-        if (ua.includes('mac os')) return 'mac';
-    } catch {
-        // Ignore detection failures.
-    }
-    return 'other';
-}
 
 export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onSaveServerUrl }: LandingProps) {
     const [mode, setMode] = useState<'join' | 'create'>('create');
@@ -276,51 +257,11 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
     const [serverMode, setServerMode] = useState<'pizza' | 'local'>('pizza');
     const [customServerUrl, setCustomServerUrl] = useState('http://127.0.0.1:3005');
     const [serverUrlMessage, setServerUrlMessage] = useState('');
-    const [showGuide, setShowGuide] = useState(false);
     const [showCredits, setShowCredits] = useState(false);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     const PIZZA_SERVER_URL = 'https://watch-pizza-party.onrender.com';
     const activeServerUrl = serverMode === 'pizza' ? PIZZA_SERVER_URL : customServerUrl.trim();
-    const isLocalServerUrl = serverMode === 'local';
-    const publicServerUrl = serverMode === 'pizza' ? PIZZA_SERVER_URL : '';
-    const guideOs = detectGuideOs();
-    const guideOsLabel = guideOs === 'windows' ? 'Windows' : guideOs === 'mac' ? 'macOS' : 'Other';
-    const ngrokInstallRows = guideOs === 'windows'
-        ? [
-            {
-                key: 'install-ngrok-win-winget',
-                label: 'Windows (recommended)',
-                command: INSTALL_NGROK_WINDOWS_WINGET_COMMAND
-            },
-            {
-                key: 'install-ngrok-mac',
-                label: 'macOS',
-                command: INSTALL_NGROK_MAC_COMMAND
-            },
-            {
-                key: 'install-ngrok-win-choco',
-                label: 'Windows (Chocolatey fallback)',
-                command: INSTALL_NGROK_WINDOWS_CHOCO_COMMAND
-            }
-        ]
-        : [
-            {
-                key: 'install-ngrok-mac',
-                label: 'macOS (recommended)',
-                command: INSTALL_NGROK_MAC_COMMAND
-            },
-            {
-                key: 'install-ngrok-win-winget',
-                label: 'Windows',
-                command: INSTALL_NGROK_WINDOWS_WINGET_COMMAND
-            },
-            {
-                key: 'install-ngrok-win-choco',
-                label: 'Windows (Chocolatey fallback)',
-                command: INSTALL_NGROK_WINDOWS_CHOCO_COMMAND
-            }
-        ];
 
     useEffect(() => {
         setUsername(getLocalRandomName());
@@ -350,21 +291,6 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
     useEffect(() => {
         if (externalError) setError(externalError);
     }, [externalError]);
-
-    const handleSaveServerUrl = async () => {
-        setServerUrlMessage('');
-        try {
-            const urlToSave = serverMode === 'pizza' ? PIZZA_SERVER_URL : normalizeServerBaseUrl(customServerUrl);
-            await onSaveServerUrl(urlToSave);
-            setServerUrlMessage('Server saved');
-            window.setTimeout(() => {
-                setServerUrlMessage('');
-            }, 2200);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Could not save server URL';
-            setServerUrlMessage(message);
-        }
-    };
 
     const handleCopy = async (key: string, value: string) => {
         try {
@@ -491,15 +417,6 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                             <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-gray-600">Next Gen Sidebar Sync</p>
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setShowGuide(true)}
-                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-200 transition-colors hover:bg-blue-500/20"
-                        title="How to use"
-                    >
-                        <HelpCircle size={12} />
-                        Guide
-                    </button>
                 </div>
 
                 <div className="mb-4 flex rounded-2xl border border-white/5 bg-[#111] p-1 shadow-inner">
@@ -525,9 +442,14 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                     <div className="mb-2 flex gap-2">
                         <button
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                                 setServerMode('pizza');
-                                void handleSaveServerUrl();
+                                setServerUrlMessage('');
+                                try {
+                                    await onSaveServerUrl(PIZZA_SERVER_URL);
+                                } catch {
+                                    // Silent save
+                                }
                             }}
                             title="Free online server - works anywhere! Friends can join from different locations."
                             className={`flex-[3] rounded-xl py-3 text-sm font-black transition-all ${
@@ -540,7 +462,10 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                         </button>
                         <button
                             type="button"
-                            onClick={() => setServerMode('local')}
+                            onClick={() => {
+                                setServerMode('local');
+                                setServerUrlMessage('');
+                            }}
                             title="For developers running their own server locally. Others cannot connect remotely."
                             className={`flex-1 rounded-lg py-2 text-[9px] font-bold transition-all ${
                                 serverMode === 'local'
@@ -563,19 +488,21 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                             />
                             <button
                                 type="button"
-                                onClick={handleSaveServerUrl}
+                                onClick={async () => {
+                                    setServerUrlMessage('');
+                                    try {
+                                        const urlToSave = normalizeServerBaseUrl(customServerUrl);
+                                        await onSaveServerUrl(urlToSave);
+                                    } catch {
+                                        setServerUrlMessage('Failed to save');
+                                    }
+                                }}
                                 disabled={serverUrlSaving}
                                 className="w-full rounded-lg bg-blue-600/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-200 transition-colors hover:bg-blue-600/35 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {serverUrlSaving ? 'Saving...' : 'Save Local Server'}
                             </button>
                         </div>
-                    )}
-
-                    {serverUrlMessage && (
-                        <p className={`mt-2 text-[9px] font-bold ${serverUrlMessage.includes('saved') ? 'text-green-400' : 'text-red-400'}`}>
-                            {serverUrlMessage}
-                        </p>
                     )}
                 </div>
 
@@ -640,168 +567,6 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
             </div>
 
             <CreditsModal open={showCredits} onClose={() => setShowCredits(false)} />
-
-            {showGuide && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-5">
-                    <div className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-[#0A0A0A] p-4 shadow-2xl">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h2 className="text-sm font-black tracking-wide text-white">Quick Setup Guide</h2>
-                            <button
-                                type="button"
-                                onClick={() => setShowGuide(false)}
-                                className="rounded-full border border-white/10 p-1.5 text-gray-500 transition-colors hover:bg-white/5 hover:text-white"
-                            >
-                                <X size={13} />
-                            </button>
-                        </div>
-
-                        <div className="space-y-3 text-[11px] text-gray-300">
-                            <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-3">
-                                <p className="font-bold text-blue-100">How this guide works</p>
-                                <p className="mt-1 text-[10px] text-blue-200/90">
-                                    Host flow: start server, expose it with ngrok, create room, then share Server URL + Room Code.
-                                </p>
-                                <p className="mt-1 text-[10px] text-blue-200/90">
-                                    Guest flow: paste the same Server URL, switch to Join Party, paste Room Code, then enter.
-                                </p>
-                                <p className="mt-1 text-[10px] font-bold text-blue-200/90">
-                                    OS detected: {guideOsLabel}. Guide below supports both Windows and macOS.
-                                </p>
-                            </div>
-
-                            <details className="rounded-xl border border-white/10 bg-[#101010] p-3">
-                                <summary className="cursor-pointer list-none text-[11px] font-black tracking-wide text-white">
-                                    Are you hosting the party? 🍕
-                                </summary>
-                                <div className="mt-3 space-y-3">
-                                    <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                                        <p className="font-bold text-white">1) Start the Watch Party server (Terminal/PowerShell #1)</p>
-                                        <div className="mt-2 rounded-lg border border-white/10 bg-black px-2 py-1.5 font-mono text-[10px] text-blue-200">
-                                            {START_SERVER_COMMAND}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => void handleCopy('start-server', START_SERVER_COMMAND)}
-                                            className="mt-2 inline-flex items-center gap-1 rounded-md bg-blue-600/20 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-200 hover:bg-blue-600/35"
-                                        >
-                                            {copiedKey === 'start-server' ? <Check size={11} /> : <Copy size={11} />}
-                                            {copiedKey === 'start-server' ? 'Copied' : 'Copy'}
-                                        </button>
-                                    </div>
-
-                                    <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                                        <p className="font-bold text-white">2) Install ngrok (one-time)</p>
-                                        {ngrokInstallRows.map((row) => (
-                                            <div key={row.key} className="mt-2 rounded-lg border border-white/10 bg-black/70 px-2 py-2">
-                                                <p className="text-[10px] font-bold text-gray-300">{row.label}</p>
-                                                <div className="mt-1 rounded-md border border-white/10 bg-black px-2 py-1.5 font-mono text-[10px] text-blue-200">
-                                                    {row.command}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void handleCopy(row.key, row.command)}
-                                                    className="mt-1 inline-flex items-center gap-1 rounded-md bg-blue-600/20 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-200 hover:bg-blue-600/35"
-                                                >
-                                                    {copiedKey === row.key ? <Check size={11} /> : <Copy size={11} />}
-                                                    {copiedKey === row.key ? 'Copied' : 'Copy'}
-                                                </button>
-                                            </div>
-                                        ))}
-                                        <p className="mt-2 text-[10px] text-gray-500">
-                                            If install commands fail, download ngrok manually from{' '}
-                                            <a
-                                                href="https://ngrok.com/download"
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="font-bold text-blue-300 underline-offset-2 hover:underline"
-                                            >
-                                                ngrok.com/download
-                                            </a>
-                                            .
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                                        <p className="font-bold text-white">3) Add ngrok authtoken (one-time)</p>
-                                        <div className="mt-2 rounded-lg border border-white/10 bg-black px-2 py-1.5 font-mono text-[10px] text-blue-200">
-                                            {NGROK_AUTHTOKEN_COMMAND}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => void handleCopy('ngrok-authtoken', NGROK_AUTHTOKEN_COMMAND)}
-                                            className="mt-2 inline-flex items-center gap-1 rounded-md bg-blue-600/20 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-200 hover:bg-blue-600/35"
-                                        >
-                                            {copiedKey === 'ngrok-authtoken' ? <Check size={11} /> : <Copy size={11} />}
-                                            {copiedKey === 'ngrok-authtoken' ? 'Copied' : 'Copy'}
-                                        </button>
-                                    </div>
-
-                                    <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                                        <p className="font-bold text-white">4) Start ngrok tunnel (Terminal/PowerShell #2)</p>
-                                        <div className="mt-1 rounded-lg border border-white/10 bg-black px-2 py-1.5 font-mono text-[10px] text-blue-200">
-                                            {START_NGROK_COMMAND}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => void handleCopy('start-ngrok', START_NGROK_COMMAND)}
-                                            className="mt-2 inline-flex items-center gap-1 rounded-md bg-blue-600/20 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-200 hover:bg-blue-600/35"
-                                        >
-                                            {copiedKey === 'start-ngrok' ? <Check size={11} /> : <Copy size={11} />}
-                                            {copiedKey === 'start-ngrok' ? 'Copied' : 'Copy'}
-                                        </button>
-                                        <p className="mt-1 text-[10px] text-gray-500">Keep both terminal windows running while the party is active.</p>
-                                    </div>
-
-                                    <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                                        <p className="font-bold text-white">5) Paste ngrok URL in Server URL and click Save</p>
-                                        <p className="mt-1 text-[10px] text-gray-500">Example: https://super-fast-miao.ngrok-free.app</p>
-                                        {isLocalServerUrl ? (
-                                            <div className="mt-2 rounded-lg border border-yellow-500/25 bg-yellow-500/10 px-2 py-1.5 text-[10px] font-bold text-yellow-300">
-                                                No public URL saved yet. Paste your ngrok URL and click Save.
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <div className="mt-2 rounded-lg border border-white/10 bg-black px-2 py-1.5 font-mono text-[10px] text-blue-200 break-all">
-                                                    {publicServerUrl}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void handleCopy('server-url', publicServerUrl)}
-                                                    className="mt-2 inline-flex items-center gap-1 rounded-md bg-blue-600/20 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-200 hover:bg-blue-600/35"
-                                                >
-                                                    {copiedKey === 'server-url' ? <Check size={11} /> : <Copy size={11} />}
-                                                    {copiedKey === 'server-url' ? 'Copied' : 'Copy URL'}
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                                        <p className="font-bold text-white">6) Click Instant Create and share invite info</p>
-                                        <p className="mt-1 text-[10px] text-gray-300">Share both values with guests: Server URL and Room Code.</p>
-                                    </div>
-                                </div>
-                            </details>
-
-                            <details className="rounded-xl border border-white/10 bg-[#101010] p-3">
-                                <summary className="cursor-pointer list-none text-[11px] font-black tracking-wide text-white">
-                                    Are you joining as guest? 👀
-                                </summary>
-                                <div className="mt-3 space-y-2 rounded-lg border border-white/10 bg-black/40 p-3">
-                                    <p className="text-[10px] text-gray-300">1) Ask the host for both values: Server URL and Room Code.</p>
-                                    <p className="text-[10px] text-gray-300">2) Paste the host Server URL and click Save.</p>
-                                    <p className="text-[10px] text-gray-300">3) Switch to Join Party mode.</p>
-                                    <p className="text-[10px] text-gray-300">4) Paste Room Code and click Enter Room.</p>
-                                    <p className="text-[10px] text-gray-300">5) Open the same movie/video as host and keep this sidebar open.</p>
-                                    <p className="mt-1 text-[10px] text-blue-200/90">
-                                        Tip: if connection fails, verify the Server URL is exactly the same as host (including https and domain).
-                                    </p>
-                                </div>
-                            </details>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
