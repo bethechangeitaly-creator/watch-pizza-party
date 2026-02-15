@@ -119,7 +119,7 @@ export function RoomView({
     onSetVolumeBoost
 }: RoomViewProps) {
     const [showCopied, setShowCopied] = useState(false);
-    const [topCopyState, setTopCopyState] = useState<'room' | 'server' | null>(null);
+    const [topCopyState, setTopCopyState] = useState<'room' | null>(null);
     const [manualSyncing, setManualSyncing] = useState(false);
     const [requestingSync, setRequestingSync] = useState(false);
     const [emailShareBusy, setEmailShareBusy] = useState(false);
@@ -416,21 +416,12 @@ export function RoomView({
         }
     };
 
-    const copyServerOnly = async () => {
-        try {
-            await navigator.clipboard.writeText(serverUrl);
-            setTopCopyState('server');
-            window.setTimeout(() => setTopCopyState((prev) => (prev === 'server' ? null : prev)), 1400);
-        } catch {
-            // Ignore clipboard failures.
-        }
-    };
-
     const inviteText = [
-        'Watch Pizza Party Invite',
-        `Server URL: ${serverUrl}`,
+        '🍕 Watch Pizza Party Invite',
+        '',
         `Room Code: ${room.id}`,
-        'Open the extension, paste Server URL, click Save, then Join Party with Room Code.'
+        '',
+        'Open the Watch Pizza Party extension and join with this code!'
     ].join('\n');
 
     const copyInvite = () => {
@@ -560,19 +551,6 @@ export function RoomView({
                             >
                                 <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wider ${isLightMode ? 'text-slate-500' : 'text-gray-500'}`}>Server Status</span>
                                 <span className={`h-2 w-2 shrink-0 rounded-full ${serverLedClass}`} />
-                                <span className="min-w-0 flex-1" />
-                                <button
-                                    type="button"
-                                    onClick={copyServerOnly}
-                                    className={`shrink-0 rounded p-0.5 transition-colors ${
-                                        topCopyState === 'server'
-                                            ? (isLightMode ? 'text-emerald-700' : 'text-emerald-300')
-                                            : (isLightMode ? 'text-slate-500 hover:text-blue-600' : 'text-gray-500 hover:text-blue-200')
-                                    }`}
-                                    title="Copy server URL"
-                                >
-                                    <Copy size={10} />
-                                </button>
                             </div>
                         </div>
 
