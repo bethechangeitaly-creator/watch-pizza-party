@@ -2,18 +2,13 @@
     "compilerOptions": {
         "target": "ESNext",
         "module": "CommonJS",
+        "rootDir": "./src",
         "outDir": "./dist",
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "moduleResolution": "node",
-        "baseUrl": ".",
-        "paths": {
-            "@watch-party/shared": [
-                "../../packages/shared/src/index.ts"
-            ]
-        }
+        "moduleResolution": "node"
     },
     "include": [
         "src/**/*"
