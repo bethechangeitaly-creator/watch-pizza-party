@@ -8,6 +8,8 @@
     ],
     "scripts": {
         "dev:server": "npm run build --workspace=@watch-party/shared && npm run dev --workspace=@watch-party/server",
+        "build:server": "npm run build --workspace=@watch-party/shared && npm run build --workspace=@watch-party/server",
+        "start:server": "node apps/server/dist/index.js",
         "build:extension": "npm run build --workspace=@watch-party/extension",
         "test": "npm test --workspaces"
     },
