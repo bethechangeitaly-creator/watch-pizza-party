@@ -522,17 +522,18 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                         <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Server</label>
                     </div>
 
-                    <div className="mb-3 flex gap-2 rounded-xl bg-[#111] p-1">
+                    <div className="mb-2 flex gap-2">
                         <button
                             type="button"
                             onClick={() => {
                                 setServerMode('pizza');
                                 void handleSaveServerUrl();
                             }}
-                            className={`flex-1 rounded-lg py-2 text-[10px] font-bold transition-all ${
+                            title="Free online server - works anywhere! Friends can join from different locations."
+                            className={`flex-[3] rounded-xl py-3 text-sm font-black transition-all ${
                                 serverMode === 'pizza'
-                                    ? 'bg-blue-600 text-white shadow-lg'
-                                    : 'text-gray-500 hover:text-gray-300'
+                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-2xl shadow-orange-500/50 scale-105'
+                                    : 'bg-orange-900/20 text-orange-300 hover:bg-orange-900/30 border border-orange-500/30'
                             }`}
                         >
                             🍕 Pizza Server
@@ -540,10 +541,11 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                         <button
                             type="button"
                             onClick={() => setServerMode('local')}
-                            className={`flex-1 rounded-lg py-2 text-[10px] font-bold transition-all ${
+                            title="For developers running their own server locally. Others cannot connect remotely."
+                            className={`flex-1 rounded-lg py-2 text-[9px] font-bold transition-all ${
                                 serverMode === 'local'
-                                    ? 'bg-blue-600 text-white shadow-lg'
-                                    : 'text-gray-500 hover:text-gray-300'
+                                    ? 'bg-gray-600 text-white shadow-lg'
+                                    : 'bg-gray-900/40 text-gray-600 hover:text-gray-400 border border-gray-700/50'
                             }`}
                         >
                             Local
@@ -570,14 +572,8 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                         </div>
                     )}
 
-                    {serverMode === 'pizza' && (
-                        <p className="mt-1 text-[9px] font-bold text-green-400">✓ Connected to online server</p>
-                    )}
-                    {serverMode === 'local' && (
-                        <p className="mt-1 text-[9px] font-bold text-yellow-400">⚠ Local only - others can't connect remotely</p>
-                    )}
                     {serverUrlMessage && (
-                        <p className={`mt-1 text-[9px] font-bold ${serverUrlMessage.includes('saved') ? 'text-green-400' : 'text-red-400'}`}>
+                        <p className={`mt-2 text-[9px] font-bold ${serverUrlMessage.includes('saved') ? 'text-green-400' : 'text-red-400'}`}>
                             {serverUrlMessage}
                         </p>
                     )}

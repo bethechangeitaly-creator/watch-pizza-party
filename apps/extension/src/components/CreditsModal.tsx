@@ -81,37 +81,56 @@ export function CreditsModal({ open, onClose }: CreditsModalProps) {
 
                     {tab === 'guide' && (
                         <div className="space-y-3 text-[11px] text-gray-300">
-                            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                                <h3 className="mb-2 text-[12px] font-black text-blue-300">🍕 How to Use</h3>
-                                <ol className="space-y-2 text-[10px] leading-relaxed">
-                                    <li><span className="font-bold text-blue-200">1.</span> Open <span className="font-bold">Netflix</span> or <span className="font-bold">YouTube</span></li>
-                                    <li><span className="font-bold text-blue-200">2.</span> Click the extension icon</li>
-                                    <li><span className="font-bold text-blue-200">3.</span> Choose <span className="font-bold">"Host Party"</span> or <span className="font-bold">"Join Party"</span></li>
-                                    <li><span className="font-bold text-blue-200">4.</span> Share the room code with friends!</li>
+                            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                                <h3 className="mb-3 text-center text-[13px] font-black text-blue-300">🍕 Simple Steps</h3>
+                                <ol className="space-y-3 text-[11px] leading-relaxed">
+                                    <li className="flex gap-3">
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-black text-white">1</span>
+                                        <span>Open Netflix or YouTube</span>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-black text-white">2</span>
+                                        <span>Click the extension icon</span>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-black text-white">3</span>
+                                        <span>Host or Join a party</span>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-black text-white">4</span>
+                                        <span>Share the room code with friends</span>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-600 text-[11px] font-black text-white">🍕</span>
+                                        <span className="font-bold text-orange-300">Enjoy watching together!</span>
+                                    </li>
                                 </ol>
                             </div>
 
-                            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                                <h3 className="mb-2 text-[12px] font-black text-blue-300">🌐 Server Options</h3>
-                                <div className="space-y-2 text-[10px] leading-relaxed">
-                                    <div>
-                                        <p className="font-bold text-green-300">🍕 Pizza Server (Online)</p>
-                                        <p className="text-gray-400">Free hosted server - works anywhere! Friends can join from different locations.</p>
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-yellow-300">Local Server</p>
-                                        <p className="text-gray-400">For developers running their own server locally. Others cannot connect remotely.</p>
-                                    </div>
+                            <div className="rounded-xl border-2 border-orange-500/40 bg-gradient-to-br from-orange-950/40 to-orange-900/20 p-4">
+                                <div className="mb-3 text-center">
+                                    <div className="mb-2 text-3xl">🍕</div>
+                                    <h3 className="mb-1 text-[13px] font-black text-orange-300">Support Our Free Server</h3>
+                                    <p className="text-[10px] leading-relaxed text-gray-300">
+                                        Keeping the Pizza Server online costs money. Your donation helps us keep it free for everyone!
+                                    </p>
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={() => window.open(DONATION_URL, '_blank', 'noopener,noreferrer')}
+                                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 text-[12px] font-black uppercase tracking-wider text-white shadow-lg shadow-orange-500/30 transition-all hover:shadow-xl hover:shadow-orange-500/50 hover:scale-105"
+                                >
+                                    <Heart size={14} className="fill-current" />
+                                    Donate a Slice of Pizza
+                                </button>
                             </div>
 
                             <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                                <h3 className="mb-2 text-[12px] font-black text-blue-300">💡 Tips</h3>
-                                <ul className="space-y-1 text-[10px] leading-relaxed">
-                                    <li>• Manual sync: Use the timeline to stay in sync</li>
-                                    <li>• Chat with your party in real-time</li>
+                                <h3 className="mb-2 text-[11px] font-black text-blue-300">💡 Quick Tips</h3>
+                                <ul className="space-y-1.5 text-[10px] leading-relaxed text-gray-400">
+                                    <li>• Use the timeline to stay in sync</li>
+                                    <li>• Chat in real-time with your party</li>
                                     <li>• Works best with stable internet</li>
-                                    <li>• Pizza Server spins down after 15min of inactivity</li>
                                 </ul>
                             </div>
                         </div>
