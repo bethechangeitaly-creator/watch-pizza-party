@@ -273,14 +273,17 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
     const [roomId, setRoomId] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(externalError || '');
-    const [serverUrlDraft, setServerUrlDraft] = useState(serverUrl);
+    const [serverMode, setServerMode] = useState<'pizza' | 'local'>('pizza');
+    const [customServerUrl, setCustomServerUrl] = useState('http://127.0.0.1:3005');
     const [serverUrlMessage, setServerUrlMessage] = useState('');
     const [showGuide, setShowGuide] = useState(false);
     const [showCredits, setShowCredits] = useState(false);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
-    const activeServerUrl = (serverUrlDraft || serverUrl || '').trim();
-    const isLocalServerUrl = isLocalOnlyServerUrl(activeServerUrl);
-    const publicServerUrl = isLocalServerUrl ? '' : activeServerUrl;
+
+    const PIZZA_SERVER_URL = 'https://watch-pizza-party.onrender.com';
+    const activeServerUrl = serverMode === 'pizza' ? PIZZA_SERVER_URL : customServerUrl.trim();
+    const isLocalServerUrl = serverMode === 'local';
+    const publicServerUrl = serverMode === 'pizza' ? PIZZA_SERVER_URL : '';
     const guideOs = detectGuideOs();
     const guideOsLabel = guideOs === 'windows' ? 'Windows' : guideOs === 'mac' ? 'macOS' : 'Other';
     const ngrokInstallRows = guideOs === 'windows'
@@ -335,7 +338,13 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
     }, []);
 
     useEffect(() => {
-        setServerUrlDraft(serverUrl);
+        // Initialize from stored serverUrl
+        if (serverUrl === PIZZA_SERVER_URL) {
+            setServerMode('pizza');
+        } else {
+            setServerMode('local');
+            setCustomServerUrl(serverUrl || 'http://127.0.0.1:3005');
+        }
     }, [serverUrl]);
 
     useEffect(() => {
@@ -345,10 +354,9 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
     const handleSaveServerUrl = async () => {
         setServerUrlMessage('');
         try {
-            const normalizedServerUrl = normalizeServerBaseUrl(serverUrlDraft);
-            await onSaveServerUrl(normalizedServerUrl);
-            setServerUrlDraft(normalizedServerUrl);
-            setServerUrlMessage('Server URL saved');
+            const urlToSave = serverMode === 'pizza' ? PIZZA_SERVER_URL : normalizeServerBaseUrl(customServerUrl);
+            await onSaveServerUrl(urlToSave);
+            setServerUrlMessage('Server saved');
             window.setTimeout(() => {
                 setServerUrlMessage('');
             }, 2200);
@@ -510,32 +518,66 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                 </div>
 
                 <div className="mb-4 rounded-2xl border border-white/10 bg-[#0D0D0D] p-3">
-                    <div className="mb-1.5 flex items-center justify-between">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Server URL</label>
+                    <div className="mb-2 flex items-center justify-between">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Server</label>
+                    </div>
+
+                    <div className="mb-3 flex gap-2 rounded-xl bg-[#111] p-1">
                         <button
                             type="button"
-                            onClick={handleSaveServerUrl}
-                            disabled={serverUrlSaving}
-                            className="rounded-md bg-blue-600/20 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-200 transition-colors hover:bg-blue-600/35 disabled:cursor-not-allowed disabled:opacity-60"
+                            onClick={() => {
+                                setServerMode('pizza');
+                                void handleSaveServerUrl();
+                            }}
+                            className={`flex-1 rounded-lg py-2 text-[10px] font-bold transition-all ${
+                                serverMode === 'pizza'
+                                    ? 'bg-blue-600 text-white shadow-lg'
+                                    : 'text-gray-500 hover:text-gray-300'
+                            }`}
                         >
-                            {serverUrlSaving ? 'Saving...' : 'Save'}
+                            🍕 Pizza Server
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setServerMode('local')}
+                            className={`flex-1 rounded-lg py-2 text-[10px] font-bold transition-all ${
+                                serverMode === 'local'
+                                    ? 'bg-blue-600 text-white shadow-lg'
+                                    : 'text-gray-500 hover:text-gray-300'
+                            }`}
+                        >
+                            Local
                         </button>
                     </div>
-                    <input
-                        type="text"
-                        value={serverUrlDraft}
-                        onChange={(e) => setServerUrlDraft(e.target.value)}
-                        placeholder="https://...ngrok-free.app"
-                        className="w-full rounded-xl border border-white/10 bg-[#111] px-3 py-2 text-[11px] text-gray-200 outline-none transition-all placeholder:text-gray-700 focus:ring-2 focus:ring-blue-500/40"
-                    />
-                    <p className="mt-1 text-[9px] text-gray-600">For remote use: paste your ngrok URL and click Save.</p>
-                    {isLocalServerUrl ? (
-                        <p className="mt-1 text-[9px] font-bold text-yellow-400">Local only. Other people cannot connect with this URL.</p>
-                    ) : (
-                        <p className="mt-1 text-[9px] font-bold text-green-400">Public URL detected. Remote users can join.</p>
+
+                    {serverMode === 'local' && (
+                        <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                            <input
+                                type="text"
+                                value={customServerUrl}
+                                onChange={(e) => setCustomServerUrl(e.target.value)}
+                                placeholder="http://127.0.0.1:3005"
+                                className="w-full rounded-xl border border-white/10 bg-[#111] px-3 py-2 text-[11px] text-gray-200 outline-none transition-all placeholder:text-gray-700 focus:ring-2 focus:ring-blue-500/40"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleSaveServerUrl}
+                                disabled={serverUrlSaving}
+                                className="w-full rounded-lg bg-blue-600/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-200 transition-colors hover:bg-blue-600/35 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {serverUrlSaving ? 'Saving...' : 'Save Local Server'}
+                            </button>
+                        </div>
+                    )}
+
+                    {serverMode === 'pizza' && (
+                        <p className="mt-1 text-[9px] font-bold text-green-400">✓ Connected to online server</p>
+                    )}
+                    {serverMode === 'local' && (
+                        <p className="mt-1 text-[9px] font-bold text-yellow-400">⚠ Local only - others can't connect remotely</p>
                     )}
                     {serverUrlMessage && (
-                        <p className={`mt-1 text-[9px] font-bold ${serverUrlMessage === 'Server URL saved' ? 'text-green-400' : 'text-red-400'}`}>
+                        <p className={`mt-1 text-[9px] font-bold ${serverUrlMessage.includes('saved') ? 'text-green-400' : 'text-red-400'}`}>
                             {serverUrlMessage}
                         </p>
                     )}
