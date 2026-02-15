@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+apps/extension/dist/
+apps/server/dist/
+packages/shared/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# Mac app bundle (not needed for deployment)
+WatchParty Server (MAC).app/
+
+# Empty/stale file
+api.giphy.com
+
+# Large graphic source files (PSD, etc.)
+WatchParty_Graphic/*.psd
+WatchParty_Graphic/*.jpeg
+
+# Logs
+*.log
+npm-debug.log*

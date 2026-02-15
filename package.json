@@ -1,0 +1,19 @@
+{
+    "name": "watch-party-companion",
+    "private": true,
+    "version": "1.0.2",
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "scripts": {
+        "dev:server": "npm run build --workspace=@watch-party/shared && npm run dev --workspace=@watch-party/server",
+        "build:extension": "npm run build --workspace=@watch-party/extension",
+        "test": "npm test --workspaces"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.3",
+        "prettier": "^3.2.5",
+        "eslint": "^8.56.0"
+    }
+}

@@ -1,0 +1,33 @@
+{
+    "name": "@watch-party/extension",
+    "version": "1.0.2",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc --noEmit && vite build --config vite.config.mjs",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@watch-party/shared": "*",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "lucide-react": "^0.344.0",
+        "socket.io-client": "^4.7.4",
+        "clsx": "^2.1.0",
+        "tailwind-merge": "^2.2.1",
+        "nanoid": "^5.0.6"
+    },
+    "devDependencies": {
+        "@types/react": "^18.2.55",
+        "@types/react-dom": "^18.2.19",
+        "@types/chrome": "^0.0.260",
+        "@vitejs/plugin-react": "^4.2.1",
+        "autoprefixer": "^10.4.17",
+        "postcss": "^8.4.35",
+        "tailwindcss": "^3.4.1",
+        "typescript": "^5.3.3",
+        "vite": "^5.1.4",
+        "rollup": "^4.12.0",
+        "vite-plugin-static-copy": "^1.0.1"
+    }
+}

@@ -1,0 +1,84 @@
+{
+    "manifest_version": 3,
+    "name": "Watch Pizza Party",
+    "version": "1.0.2",
+    "description": "Premium synchronized viewing for Netflix, YouTube and more.",
+    "incognito": "split",
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icon16.png",
+            "32": "icon32.png",
+            "48": "icon48.png",
+            "128": "icon128.png"
+        }
+    },
+    "side_panel": {
+        "default_path": "index.html"
+    },
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "permissions": [
+        "sidePanel",
+        "storage",
+        "activeTab",
+        "scripting",
+        "tabs",
+        "tabCapture",
+        "offscreen"
+    ],
+    "host_permissions": [
+        "https://*/*",
+        "http://*/*",
+        "https://*.netflix.com/*",
+        "https://*.youtube.com/*",
+        "https://youtu.be/*",
+        "http://127.0.0.1/*",
+        "http://localhost/*"
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "https://*.youtube.com/*",
+                "https://youtu.be/*",
+                "https://*.netflix.com/*"
+            ],
+            "js": [
+                "player-bridge.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN"
+        },
+        {
+            "matches": [
+                "https://*/*",
+                "http://*/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "all_frames": true,
+            "match_about_blank": true
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "player-bridge.js"
+            ],
+            "matches": [
+                "https://*.youtube.com/*",
+                "https://youtu.be/*",
+                "https://*.netflix.com/*"
+            ]
+        }
+    ],
+    "icons": {
+        "16": "icon16.png",
+        "32": "icon32.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    }
+}
