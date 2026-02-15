@@ -18,11 +18,6 @@ export default defineConfig({
             ],
         }),
     ],
-    resolve: {
-        alias: {
-            '@watch-party/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
-        },
-    },
     build: {
         outDir: 'dist',
         emptyOutDir: true,

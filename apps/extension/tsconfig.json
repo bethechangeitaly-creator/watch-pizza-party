@@ -21,13 +21,7 @@
         "jsx": "react-jsx",
         "types": [
             "chrome"
-        ],
-        "baseUrl": ".",
-        "paths": {
-            "@watch-party/shared": [
-                "../../packages/shared/src/index.ts"
-            ]
-        }
+        ]
     },
     "include": [
         "src"
