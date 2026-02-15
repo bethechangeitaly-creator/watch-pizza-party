@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Heart, BookOpen } from 'lucide-react';
 
 const DONATION_URL = 'https://www.paypal.com/donate/?hosted_button_id=BM6CSJULZ2RXG';
@@ -6,10 +6,17 @@ const DONATION_URL = 'https://www.paypal.com/donate/?hosted_button_id=BM6CSJULZ2
 interface CreditsModalProps {
     open: boolean;
     onClose: () => void;
+    initialTab?: 'about' | 'guide';
 }
 
-export function CreditsModal({ open, onClose }: CreditsModalProps) {
-    const [tab, setTab] = useState<'about' | 'guide'>('about');
+export function CreditsModal({ open, onClose, initialTab = 'about' }: CreditsModalProps) {
+    const [tab, setTab] = useState<'about' | 'guide'>(initialTab);
+
+    useEffect(() => {
+        if (open) {
+            setTab(initialTab);
+        }
+    }, [open, initialTab]);
 
     if (!open) return null;
 

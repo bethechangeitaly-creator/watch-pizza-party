@@ -258,6 +258,7 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
     const [customServerUrl, setCustomServerUrl] = useState('http://127.0.0.1:3005');
     const [serverUrlMessage, setServerUrlMessage] = useState('');
     const [showCredits, setShowCredits] = useState(false);
+    const [creditsInitialTab, setCreditsInitialTab] = useState<'about' | 'guide'>('about');
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     const PIZZA_SERVER_URL = 'https://watch-pizza-party.onrender.com';
@@ -406,7 +407,10 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                     <div className="min-w-0 flex items-center gap-3">
                         <button
                             type="button"
-                            onClick={() => setShowCredits(true)}
+                            onClick={() => {
+                                setCreditsInitialTab('about');
+                                setShowCredits(true);
+                            }}
                             className="watchparty-logo-pulse flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-blue-600 shadow-xl shadow-blue-500/20 transition-transform hover:scale-[1.03]"
                             title="About Watch Pizza Party"
                         >
@@ -419,7 +423,10 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                     </div>
                     <button
                         type="button"
-                        onClick={() => setShowCredits(true)}
+                        onClick={() => {
+                            setCreditsInitialTab('guide');
+                            setShowCredits(true);
+                        }}
                         className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-200 transition-colors hover:bg-blue-500/20"
                         title="View Guide"
                     >
@@ -574,7 +581,7 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                 </form>
             </div>
 
-            <CreditsModal open={showCredits} onClose={() => setShowCredits(false)} />
+            <CreditsModal open={showCredits} onClose={() => setShowCredits(false)} initialTab={creditsInitialTab} />
         </div>
     );
 }
