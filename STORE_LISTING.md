@@ -1,15 +1,15 @@
-# Chrome Web Store Listing - Watch Pizza Party
+Chrome Web Store Listing - Watch Pizza Party
 
-## Extension Name
+Extension Name
 Watch Pizza Party
 
-## Tagline (132 characters max)
+Tagline (132 characters max)
 Watch Netflix & YouTube together with friends! Real-time sync, built-in chat, and Pizza Server hosting. Stay close, even when far.
 
-## Short Description (132 characters max)
+Short Description (132 characters max)
 Synchronized watch parties for Netflix & YouTube with real-time chat. Free Pizza Server included!
 
-## Detailed Description (16,000 characters max)
+Detailed Description (16,000 characters max)
 
 🍕 Watch Together, Stay Connected
 
@@ -85,27 +85,27 @@ Found a bug? Have a suggestion? Visit our GitHub repository or contact the devel
 Built with love by Emanuel Caristi
 For people who enjoy a slice of pizza and a shared moment with friends, staying close even when far away.
 
-## Category
+Category
 Social & Communication
 
-## Language
+Language
 English
 
-## Keywords/Tags (separated by commas)
+Keywords/Tags (separated by commas)
 watch party, netflix party, youtube sync, watch together, synchronized viewing, video chat, movie night, streaming party, remote viewing, watch with friends
 
-## Support URL
+Support URL
 https://github.com/bethechangeitaly-creator/watch-pizza-party
 
-## Privacy Policy URL
+Privacy Policy URL
 https://raw.githubusercontent.com/bethechangeitaly-creator/watch-pizza-party/main/PRIVACY_POLICY.md
 
-## Single Purpose Description (for Chrome Web Store Review)
+Single Purpose Description (for Chrome Web Store Review)
 This extension enables synchronized watch parties on Netflix and YouTube with real-time chat, allowing users to watch videos together with perfect synchronization.
 
-## Justification for Permissions
+Justification for Permissions
 
-### Required Permissions:
+Required Permissions:
 
 1. tabs
    - Purpose: Detect which tab contains Netflix/YouTube for synchronization
@@ -135,7 +135,7 @@ This extension enables synchronized watch parties on Netflix and YouTube with re
    - Purpose: Audio processing for volume boost
    - Justification: Process audio in background for volume enhancement
 
-### No Broad Permissions:
+No Broad Permissions:
 - We do NOT request access to all websites
 - We do NOT request access to browsing history
 - We do NOT request access to bookmarks or downloads
