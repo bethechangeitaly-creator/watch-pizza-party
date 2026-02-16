@@ -581,7 +581,7 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                                 <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2">
                                     <p className="text-[10px] font-semibold text-red-300 mb-1">🔴 Server appears offline</p>
                                     <p className="text-[9px] text-red-200/70 leading-relaxed">
-                                        Don't worry! Try clicking "Instant Create" anyway - the server often starts on the first request. If it fails, wait 30 seconds and try again.
+                                        Don't worry! Try clicking "Create a Pizza Party" anyway - the server often starts on the first request. If it fails, wait 30 seconds and try again.
                                     </p>
                                 </div>
                             )}
@@ -663,7 +663,7 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                     >
                         {loading ? <Loader2 className="animate-spin" size={20} /> : (
                             <>
-                                {mode === 'create' ? 'Instant Create' : 'Enter Room'}
+                                {mode === 'create' ? 'Create a Pizza Party' : 'Enter Room'}
                                 <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
                             </>
                         )}
