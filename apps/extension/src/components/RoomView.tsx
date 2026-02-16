@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Room, SyncProfile, WSMessage } from '@watch-party/shared';
 import { Chat } from './Chat';
 import { CreditsModal } from './CreditsModal';
-import { LogOut, Copy, Crown, Users, RefreshCw, AlertCircle, AlertTriangle, Minimize2, Volume2, VolumeX, Mail, MessageCircle, Sun, Moon, SkipBack, Pause, Play, SkipForward, ChevronRight, ChevronDown, X, Power } from 'lucide-react';
+import { LogOut, Copy, Crown, Users, RefreshCw, AlertCircle, AlertTriangle, Minimize2, Volume2, VolumeX, Mail, MessageCircle, Sun, Moon, SkipBack, Pause, Play, SkipForward, ChevronRight, ChevronDown, X, Power, Heart } from 'lucide-react';
 
 interface RoomViewProps {
     room: Room;
@@ -28,6 +28,7 @@ const DEFAULT_SYNC_AGGRESSION = 50;
 const CHAT_SOUNDS_STORAGE_KEY = 'watch_party_chat_sounds_enabled';
 const UI_THEME_STORAGE_KEY = 'watch_party_ui_theme';
 const HEADER_COLLAPSED_STORAGE_KEY = 'watch_party_header_collapsed';
+const DONATION_REMINDER_INTERVAL_MS = 40 * 60 * 1000; // 40 minutes
 
 type SyncTuning = {
     hardToleranceSeconds: number;
@@ -148,6 +149,8 @@ export function RoomView({
     });
     const [syncAggression, setSyncAggression] = useState<number>(clampSyncAggression(syncAggressionSetting));
     const [volumeBoost, setVolumeBoost] = useState<number>(volumeBoostSetting);
+    const [showDonationReminder, setShowDonationReminder] = useState(false);
+    const donationTimerRef = useRef<number | null>(null);
     const me = room.participants.find((participant) => participant.username === username);
     const isHost = room.hostId === me?.id;
 
@@ -304,6 +307,45 @@ export function RoomView({
         lastNeedSyncEventRef.current = { key: eventKey, at: now };
         playNeedSyncTone(reason);
     }, [isHost, latestMessage]);
+
+    // Donation reminder timer - shows after 40 minutes of room usage
+    useEffect(() => {
+        const startDonationTimer = () => {
+            // Clear any existing timer
+            if (donationTimerRef.current !== null) {
+                window.clearTimeout(donationTimerRef.current);
+            }
+
+            // Start new 40-minute timer
+            donationTimerRef.current = window.setTimeout(() => {
+                setShowDonationReminder(true);
+            }, DONATION_REMINDER_INTERVAL_MS);
+        };
+
+        // Start timer when component mounts
+        startDonationTimer();
+
+        // Cleanup timer on unmount
+        return () => {
+            if (donationTimerRef.current !== null) {
+                window.clearTimeout(donationTimerRef.current);
+                donationTimerRef.current = null;
+            }
+        };
+    }, []);
+
+    const handleCloseDonationReminder = () => {
+        setShowDonationReminder(false);
+
+        // Restart the 40-minute timer
+        if (donationTimerRef.current !== null) {
+            window.clearTimeout(donationTimerRef.current);
+        }
+
+        donationTimerRef.current = window.setTimeout(() => {
+            setShowDonationReminder(true);
+        }, DONATION_REMINDER_INTERVAL_MS);
+    };
 
     const handleManualSync = async () => {
         if (!isHost || manualSyncing) return;
@@ -552,6 +594,43 @@ export function RoomView({
                                 <span className={`h-2 w-2 shrink-0 rounded-full ${serverLedClass}`} />
                             </div>
                         </div>
+
+                        {/* Donation Reminder Banner */}
+                        {showDonationReminder && (
+                            <div className={`mt-3 rounded-xl border-2 p-3 animate-in slide-in-from-top-2 duration-300 ${isLightMode ? 'border-orange-300 bg-orange-50' : 'border-orange-500/40 bg-gradient-to-br from-orange-950/40 to-orange-900/20'}`}>
+                                <div className="flex items-start gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <span className="text-lg">🍕</span>
+                                            <h3 className={`text-[11px] font-black ${isLightMode ? 'text-orange-800' : 'text-orange-300'}`}>
+                                                Support Our Free Server
+                                            </h3>
+                                        </div>
+                                        <p className={`text-[9px] leading-relaxed mb-2 ${isLightMode ? 'text-orange-700' : 'text-gray-300'}`}>
+                                            Keeping the Pizza Server online costs money. Your donation helps us keep it free for everyone!
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                window.open('https://www.paypal.com/donate/?hosted_button_id=BM6CSJULZ2RXG', '_blank', 'noopener,noreferrer');
+                                            }}
+                                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105 ${isLightMode ? 'bg-orange-600 text-white hover:bg-orange-700 shadow-md' : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/50'}`}
+                                        >
+                                            <Heart size={11} className="fill-current" />
+                                            Donate a Slice
+                                        </button>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleCloseDonationReminder}
+                                        className={`shrink-0 rounded-full p-1 transition-colors ${isLightMode ? 'text-orange-600 hover:bg-orange-200' : 'text-orange-400 hover:bg-orange-500/20'}`}
+                                        title="Close"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {isHost && (
                             <div className={`mt-3 rounded-xl px-3 py-2 ${isLightMode ? 'border border-slate-200 bg-white' : 'border border-white/10 bg-white/5'}`}>
