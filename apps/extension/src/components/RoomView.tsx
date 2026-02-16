@@ -28,6 +28,7 @@ const DEFAULT_SYNC_AGGRESSION = 50;
 const CHAT_SOUNDS_STORAGE_KEY = 'watch_party_chat_sounds_enabled';
 const UI_THEME_STORAGE_KEY = 'watch_party_ui_theme';
 const HEADER_COLLAPSED_STORAGE_KEY = 'watch_party_header_collapsed';
+const DONATION_REMINDER_NEXT_SHOW_KEY = 'watch_party_donation_next_show';
 const DONATION_REMINDER_INTERVAL_MS = 40 * 60 * 1000; // 40 minutes
 
 type SyncTuning = {
@@ -149,7 +150,15 @@ export function RoomView({
     });
     const [syncAggression, setSyncAggression] = useState<number>(clampSyncAggression(syncAggressionSetting));
     const [volumeBoost, setVolumeBoost] = useState<number>(volumeBoostSetting);
-    const [showDonationReminder, setShowDonationReminder] = useState(true);
+    const [showDonationReminder, setShowDonationReminder] = useState(() => {
+        // Check if we should show the donation reminder based on stored timestamp
+        const nextShowTimestamp = localStorage.getItem(DONATION_REMINDER_NEXT_SHOW_KEY);
+        if (!nextShowTimestamp) {
+            return true; // First time - show immediately
+        }
+        const nextShow = parseInt(nextShowTimestamp, 10);
+        return Date.now() >= nextShow; // Show if current time is past the next show time
+    });
     const donationTimerRef = useRef<number | null>(null);
     const me = room.participants.find((participant) => participant.username === username);
     const isHost = room.hostId === me?.id;
@@ -308,10 +317,26 @@ export function RoomView({
         playNeedSyncTone(reason);
     }, [isHost, latestMessage]);
 
-    // Donation reminder - shows on room start, then again 40 minutes after user closes it
+    // Donation reminder - check periodically if it's time to show again
     useEffect(() => {
-        // Cleanup timer on unmount
+        const checkDonationReminder = () => {
+            const nextShowTimestamp = localStorage.getItem(DONATION_REMINDER_NEXT_SHOW_KEY);
+            if (!nextShowTimestamp) {
+                setShowDonationReminder(true);
+                return;
+            }
+            const nextShow = parseInt(nextShowTimestamp, 10);
+            if (Date.now() >= nextShow) {
+                setShowDonationReminder(true);
+            }
+        };
+
+        // Check every minute if it's time to show the reminder
+        const intervalId = window.setInterval(checkDonationReminder, 60000);
+
+        // Cleanup on unmount
         return () => {
+            window.clearInterval(intervalId);
             if (donationTimerRef.current !== null) {
                 window.clearTimeout(donationTimerRef.current);
                 donationTimerRef.current = null;
@@ -322,14 +347,9 @@ export function RoomView({
     const handleCloseDonationReminder = () => {
         setShowDonationReminder(false);
 
-        // Restart the 40-minute timer
-        if (donationTimerRef.current !== null) {
-            window.clearTimeout(donationTimerRef.current);
-        }
-
-        donationTimerRef.current = window.setTimeout(() => {
-            setShowDonationReminder(true);
-        }, DONATION_REMINDER_INTERVAL_MS);
+        // Set the next show time to 40 minutes from now
+        const nextShowTime = Date.now() + DONATION_REMINDER_INTERVAL_MS;
+        localStorage.setItem(DONATION_REMINDER_NEXT_SHOW_KEY, nextShowTime.toString());
     };
 
     const handleManualSync = async () => {
