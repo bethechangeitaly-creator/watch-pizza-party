@@ -539,31 +539,51 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                     </div>
 
                     {serverMode === 'pizza' && (
-                        <div className="mb-2 flex items-center justify-center gap-2 rounded-lg border border-white/5 bg-black/40 px-3 py-2 animate-in slide-in-from-top-2 duration-200">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500">Status:</span>
-                            {pizzaServerStatus === 'checking' && (
-                                <>
-                                    <span className="h-2 w-2 rounded-full bg-gray-400 animate-pulse" />
-                                    <span className="text-[9px] font-semibold text-gray-400">Checking...</span>
-                                </>
-                            )}
-                            {pizzaServerStatus === 'online' && (
-                                <>
-                                    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
-                                    <span className="text-[9px] font-semibold text-emerald-300">Online & Ready</span>
-                                </>
-                            )}
+                        <div className="mb-2 space-y-2 animate-in slide-in-from-top-2 duration-200">
+                            <div className="flex items-center justify-center gap-2 rounded-lg border border-white/5 bg-black/40 px-3 py-2">
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500">Status:</span>
+                                {pizzaServerStatus === 'checking' && (
+                                    <>
+                                        <span className="h-2 w-2 rounded-full bg-gray-400 animate-pulse" />
+                                        <span className="text-[9px] font-semibold text-gray-400">Checking...</span>
+                                    </>
+                                )}
+                                {pizzaServerStatus === 'online' && (
+                                    <>
+                                        <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+                                        <span className="text-[9px] font-semibold text-emerald-300">Online & Ready</span>
+                                    </>
+                                )}
+                                {pizzaServerStatus === 'starting' && (
+                                    <>
+                                        <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+                                        <span className="text-[9px] font-semibold text-yellow-300">Starting (~30s)</span>
+                                    </>
+                                )}
+                                {pizzaServerStatus === 'offline' && (
+                                    <>
+                                        <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.7)]" />
+                                        <span className="text-[9px] font-semibold text-red-300">Offline</span>
+                                    </>
+                                )}
+                            </div>
+
                             {pizzaServerStatus === 'starting' && (
-                                <>
-                                    <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
-                                    <span className="text-[9px] font-semibold text-yellow-300">Starting (~30s)</span>
-                                </>
+                                <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-3 py-2">
+                                    <p className="text-[10px] font-semibold text-yellow-300 mb-1">⏳ Server is waking up...</p>
+                                    <p className="text-[9px] text-yellow-200/70 leading-relaxed">
+                                        The Pizza Server starts on-demand. Wait ~30 seconds, then try creating your room. It will work on the next attempt!
+                                    </p>
+                                </div>
                             )}
+
                             {pizzaServerStatus === 'offline' && (
-                                <>
-                                    <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.7)]" />
-                                    <span className="text-[9px] font-semibold text-red-300">Offline</span>
-                                </>
+                                <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2">
+                                    <p className="text-[10px] font-semibold text-red-300 mb-1">🔴 Server appears offline</p>
+                                    <p className="text-[9px] text-red-200/70 leading-relaxed">
+                                        Don't worry! Try clicking "Instant Create" anyway - the server often starts on the first request. If it fails, wait 30 seconds and try again.
+                                    </p>
+                                </div>
                             )}
                         </div>
                     )}
