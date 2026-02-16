@@ -306,7 +306,7 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-                const response = await fetch(`${PIZZA_SERVER_URL}/health`, {
+                const response = await fetch(`${PIZZA_SERVER_URL}/`, {
                     method: 'GET',
                     signal: controller.signal
                 });
