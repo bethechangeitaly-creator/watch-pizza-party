@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Watch Pizza Party",
     "version": "1.0.2",
-    "description": "Premium synchronized viewing for Netflix, YouTube and more.",
+    "description": "Synchronized watch parties for Netflix and YouTube with real-time chat.",
     "incognito": "split",
     "action": {
         "default_popup": "popup.html",
@@ -30,13 +30,9 @@
         "offscreen"
     ],
     "host_permissions": [
-        "https://*/*",
-        "http://*/*",
         "https://*.netflix.com/*",
         "https://*.youtube.com/*",
-        "https://youtu.be/*",
-        "http://127.0.0.1/*",
-        "http://localhost/*"
+        "https://youtu.be/*"
     ],
     "content_scripts": [
         {
@@ -53,8 +49,9 @@
         },
         {
             "matches": [
-                "https://*/*",
-                "http://*/*"
+                "https://*.youtube.com/*",
+                "https://youtu.be/*",
+                "https://*.netflix.com/*"
             ],
             "js": [
                 "content.js"
