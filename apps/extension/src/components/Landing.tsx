@@ -260,6 +260,7 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
     const [showCredits, setShowCredits] = useState(false);
     const [creditsInitialTab, setCreditsInitialTab] = useState<'about' | 'guide'>('about');
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    const [pizzaServerStatus, setPizzaServerStatus] = useState<'checking' | 'online' | 'starting' | 'offline'>('checking');
 
     const PIZZA_SERVER_URL = 'https://watch-pizza-party.onrender.com';
     const activeServerUrl = serverMode === 'pizza' ? PIZZA_SERVER_URL : customServerUrl.trim();
@@ -292,6 +293,51 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
     useEffect(() => {
         if (externalError) setError(externalError);
     }, [externalError]);
+
+    // Check Pizza Server status on mount and when switching to pizza mode
+    useEffect(() => {
+        if (serverMode !== 'pizza') return;
+
+        let cancelled = false;
+        setPizzaServerStatus('checking');
+
+        const checkPizzaServer = async () => {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+                const response = await fetch(`${PIZZA_SERVER_URL}/health`, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (cancelled) return;
+
+                if (response.ok) {
+                    setPizzaServerStatus('online');
+                } else {
+                    setPizzaServerStatus('offline');
+                }
+            } catch (error: any) {
+                if (cancelled) return;
+
+                // If timeout/abort, server is likely cold-starting
+                if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+                    setPizzaServerStatus('starting');
+                } else {
+                    setPizzaServerStatus('offline');
+                }
+            }
+        };
+
+        void checkPizzaServer();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [serverMode]);
 
     const handleCopy = async (key: string, value: string) => {
         try {
@@ -491,6 +537,36 @@ export function Landing({ onJoin, externalError, serverUrl, serverUrlSaving, onS
                             🏠 Local
                         </button>
                     </div>
+
+                    {serverMode === 'pizza' && (
+                        <div className="mb-2 flex items-center justify-center gap-2 rounded-lg border border-white/5 bg-black/40 px-3 py-2 animate-in slide-in-from-top-2 duration-200">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500">Status:</span>
+                            {pizzaServerStatus === 'checking' && (
+                                <>
+                                    <span className="h-2 w-2 rounded-full bg-gray-400 animate-pulse" />
+                                    <span className="text-[9px] font-semibold text-gray-400">Checking...</span>
+                                </>
+                            )}
+                            {pizzaServerStatus === 'online' && (
+                                <>
+                                    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+                                    <span className="text-[9px] font-semibold text-emerald-300">Online & Ready</span>
+                                </>
+                            )}
+                            {pizzaServerStatus === 'starting' && (
+                                <>
+                                    <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+                                    <span className="text-[9px] font-semibold text-yellow-300">Starting (~30s)</span>
+                                </>
+                            )}
+                            {pizzaServerStatus === 'offline' && (
+                                <>
+                                    <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.7)]" />
+                                    <span className="text-[9px] font-semibold text-red-300">Offline</span>
+                                </>
+                            )}
+                        </div>
+                    )}
 
                     {serverMode === 'local' && (
                         <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
