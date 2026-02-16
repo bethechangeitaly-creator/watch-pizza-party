@@ -166,7 +166,7 @@ export function RoomView({
         // Default for host: invite collapsed, sync collapsed, participants open
         // Default for viewer: all sections open (buttons, participants visible)
         // Viewers don't see sync section, so it doesn't matter
-        return { buttons: !isHost, sync: true, participants: false };
+        return { buttons: isHost, sync: true, participants: false };
     });
     const isLightMode = uiTheme === 'light';
     const hostSyncTuning = getSyncTuning(syncAggression);
@@ -489,11 +489,10 @@ export function RoomView({
                                     <button
                                         type="button"
                                         onClick={copyRoomCode}
-                                        className={`rounded-md p-1 transition-colors ${
-                                            topCopyState === 'room'
-                                                ? (isLightMode ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-300')
-                                                : (isLightMode ? 'text-slate-500 hover:bg-slate-100 hover:text-blue-600' : 'text-gray-500 hover:bg-white/5 hover:text-blue-200')
-                                        }`}
+                                        className={`rounded-md p-1 transition-colors ${topCopyState === 'room'
+                                            ? (isLightMode ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-300')
+                                            : (isLightMode ? 'text-slate-500 hover:bg-slate-100 hover:text-blue-600' : 'text-gray-500 hover:bg-white/5 hover:text-blue-200')
+                                            }`}
                                         title="Copy room code"
                                     >
                                         <Copy size={11} />
@@ -547,9 +546,9 @@ export function RoomView({
 
                             <div
                                 title={serverStatusLabel}
-                                className={`flex h-8 w-[150px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 ${isLightMode ? 'border border-slate-200 bg-white' : 'border border-white/10 bg-white/5'}`}
+                                className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 ${isLightMode ? 'border border-slate-200 bg-white' : 'border border-white/10 bg-white/5'}`}
                             >
-                                <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wider ${isLightMode ? 'text-slate-500' : 'text-gray-500'}`}>Server Status</span>
+                                <span className={`text-[9px] font-bold uppercase tracking-wider ${isLightMode ? 'text-slate-500' : 'text-gray-400'}`}>SERVER STATUS</span>
                                 <span className={`h-2 w-2 shrink-0 rounded-full ${serverLedClass}`} />
                             </div>
                         </div>
@@ -752,128 +751,124 @@ export function RoomView({
                                 <div className="mt-2 flex items-center justify-between gap-2">
                                     <div className="flex min-w-0 items-center gap-2">
                                         <div className="flex -space-x-2 overflow-visible py-1 pl-0.5">
-                                        {room.participants.map((participant, index) => {
-                                            const tooltipPositionClass =
-                                                index <= 1
-                                                    ? 'left-0 translate-x-0'
-                                                    : index >= room.participants.length - 1
-                                                        ? 'right-0 left-auto translate-x-0'
-                                                        : 'left-1/2 -translate-x-1/2';
+                                            {room.participants.map((participant, index) => {
+                                                const tooltipPositionClass =
+                                                    index <= 1
+                                                        ? 'left-0 translate-x-0'
+                                                        : index >= room.participants.length - 1
+                                                            ? 'right-0 left-auto translate-x-0'
+                                                            : 'left-1/2 -translate-x-1/2';
 
-                                            return (
-                                                <div
-                                                    key={participant.id}
-                                                    className={`group relative inline-block h-8 w-8 rounded-full shadow-lg ${isLightMode ? 'ring-2 ring-white' : 'ring-2 ring-black'}`}
-                                                    style={{
-                                                        backgroundColor: participant.avatarColor,
-                                                        zIndex: participant.role === 'host' ? 80 : 20 + index
-                                                    }}
-                                                >
-                                                    <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white drop-shadow-md">
-                                                        {participant.username[0].toUpperCase()}
-                                                    </span>
-                                                    <span
-                                                        className={`pointer-events-none absolute -top-8 z-[90] ${tooltipPositionClass} max-w-[172px] overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-black/25 bg-black/85 px-2 py-1 text-[9px] font-semibold text-white opacity-0 shadow transition-opacity duration-150 group-hover:opacity-100`}
+                                                return (
+                                                    <div
+                                                        key={participant.id}
+                                                        className={`group relative inline-block h-8 w-8 rounded-full shadow-lg ${isLightMode ? 'ring-2 ring-white' : 'ring-2 ring-black'}`}
+                                                        style={{
+                                                            backgroundColor: participant.avatarColor,
+                                                            zIndex: participant.role === 'host' ? 80 : 20 + index
+                                                        }}
                                                     >
-                                                        {participant.role === 'host' ? `${participant.username} 👑 Host` : participant.username}
-                                                    </span>
-                                                    {participant.role === 'host' && (
-                                                        <div className="absolute -right-1 -top-1 z-[85] rounded-full border border-black bg-yellow-500 p-0.5 shadow-md">
-                                                            <Crown size={8} className="text-black" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-1.5">
-                                            <Users size={12} className="text-blue-500" />
-                                            <span className={`text-[11px] font-bold ${isLightMode ? 'text-slate-700' : 'text-gray-200'}`}>{room.participants.length} Watching</span>
+                                                        <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white drop-shadow-md">
+                                                            {participant.username[0].toUpperCase()}
+                                                        </span>
+                                                        <span
+                                                            className={`pointer-events-none absolute -top-8 z-[90] ${tooltipPositionClass} max-w-[172px] overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-black/25 bg-black/85 px-2 py-1 text-[9px] font-semibold text-white opacity-0 shadow transition-opacity duration-150 group-hover:opacity-100`}
+                                                        >
+                                                            {participant.role === 'host' ? `${participant.username} 👑 Host` : participant.username}
+                                                        </span>
+                                                        {participant.role === 'host' && (
+                                                            <div className="absolute -right-1 -top-1 z-[85] rounded-full border border-black bg-yellow-500 p-0.5 shadow-md">
+                                                                <Crown size={8} className="text-black" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                        <span className="ml-4 text-[9px] font-medium text-gray-500">Syncing {isHost ? 'as Host' : 'with Host'}</span>
-                                        <span className="ml-4 text-[9px] font-medium text-gray-500">Profile: {syncProfileLabel(syncProfileSetting)}</span>
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-1.5">
+                                                <Users size={12} className="text-blue-500" />
+                                                <span className={`text-[11px] font-bold ${isLightMode ? 'text-slate-700' : 'text-gray-200'}`}>{room.participants.length} Watching</span>
+                                            </div>
+                                            <span className="ml-4 text-[9px] font-medium text-gray-500">Syncing {isHost ? 'as Host' : 'with Host'}</span>
+                                            <span className="ml-4 text-[9px] font-medium text-gray-500">Profile: {syncProfileLabel(syncProfileSetting)}</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex shrink-0 items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setUiTheme((previous) => (previous === 'dark' ? 'light' : 'dark'))}
-                                        className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-1.5 text-[9px] font-semibold transition-colors ${
-                                            isLightMode
+                                    <div className="flex shrink-0 items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setUiTheme((previous) => (previous === 'dark' ? 'light' : 'dark'))}
+                                            className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-1.5 text-[9px] font-semibold transition-colors ${isLightMode
                                                 ? 'border-blue-300/80 bg-blue-50 text-blue-700 hover:bg-blue-100'
                                                 : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20 hover:text-blue-200'
-                                        }`}
-                                        title={isLightMode ? 'Switch to dark mode (cinema / Netflix)' : 'Switch to light mode (work / YouTube)'}
-                                        aria-label={isLightMode ? 'Enable dark mode' : 'Enable light mode'}
-                                    >
-                                        <span className={`relative inline-flex h-5 w-9 rounded-full ${isLightMode ? 'bg-blue-500/80' : 'bg-white/15'}`}>
-                                            <span
-                                                className={`absolute top-[2px] h-4 w-4 rounded-full shadow transition-transform ${
-                                                    isLightMode ? 'translate-x-[17px] bg-white' : 'translate-x-[2px] bg-gray-300'
                                                 }`}
-                                            />
-                                        </span>
-                                        {isLightMode ? <Sun size={11} /> : <Moon size={11} />}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowViewerSyncEvents((previous) => !previous)}
-                                        className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
-                                            showViewerSyncEvents
+                                            title={isLightMode ? 'Switch to dark mode (cinema / Netflix)' : 'Switch to light mode (work / YouTube)'}
+                                            aria-label={isLightMode ? 'Enable dark mode' : 'Enable light mode'}
+                                        >
+                                            <span className={`relative inline-flex h-5 w-9 rounded-full ${isLightMode ? 'bg-blue-500/80' : 'bg-white/15'}`}>
+                                                <span
+                                                    className={`absolute top-[2px] h-4 w-4 rounded-full shadow transition-transform ${isLightMode ? 'translate-x-[17px] bg-white' : 'translate-x-[2px] bg-gray-300'
+                                                        }`}
+                                                />
+                                            </span>
+                                            {isLightMode ? <Sun size={11} /> : <Moon size={11} />}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowViewerSyncEvents((previous) => !previous)}
+                                            className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${showViewerSyncEvents
                                                 ? 'border-orange-400/40 bg-orange-500/15 text-orange-300'
                                                 : isLightMode
                                                     ? 'border-slate-300 bg-slate-100 text-slate-500 hover:border-slate-400 hover:text-orange-400'
                                                     : 'border-white/10 bg-white/5 text-gray-500 hover:border-white/20 hover:text-orange-300'
-                                        }`}
-                                        title={showViewerSyncEvents ? 'Hide user sync alerts in chat' : 'Show user sync alerts in chat'}
-                                        aria-label={showViewerSyncEvents ? 'Hide user sync alerts' : 'Show user sync alerts'}
-                                    >
-                                        <AlertTriangle size={12} />
-                                    </button>
-                                </div>
+                                                }`}
+                                            title={showViewerSyncEvents ? 'Hide user sync alerts in chat' : 'Show user sync alerts in chat'}
+                                            aria-label={showViewerSyncEvents ? 'Hide user sync alerts' : 'Show user sync alerts'}
+                                        >
+                                            <AlertTriangle size={12} />
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
 
                         {/* Volume Boost — available to all users */}
                         <div className={`mt-3 rounded-xl px-3 py-2 ${isLightMode ? 'border border-slate-200 bg-white' : 'border border-white/10 bg-white/5'}`}>
-                        <div className="flex items-center justify-between">
-                            <span className={`text-[9px] font-bold uppercase tracking-wider ${isLightMode ? 'text-slate-500' : 'text-gray-400'}`}>
-                                <Volume2 size={10} className="mr-1 inline-block -mt-0.5" />
-                                Volume Boost
-                            </span>
-                            <span className={`text-[9px] font-bold ${
-                                volumeBoost > 100
+                            <div className="flex items-center justify-between">
+                                <span className={`text-[9px] font-bold uppercase tracking-wider ${isLightMode ? 'text-slate-500' : 'text-gray-400'}`}>
+                                    <Volume2 size={10} className="mr-1 inline-block -mt-0.5" />
+                                    Volume Boost
+                                </span>
+                                <span className={`text-[9px] font-bold ${volumeBoost > 100
                                     ? (isLightMode ? 'text-orange-600' : 'text-orange-400')
                                     : (isLightMode ? 'text-blue-700' : 'text-blue-300')
-                            }`}>
-                                {volumeBoost}%
-                            </span>
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-2">
-                            <VolumeX size={10} className={`shrink-0 ${isLightMode ? 'text-slate-400' : 'text-gray-500'}`} />
-                            <input
-                                type="range"
-                                min={0}
-                                max={600}
-                                step={5}
-                                value={volumeBoost}
-                                onChange={(e) => handleVolumeBoostInput(Number(e.target.value))}
-                                onDoubleClick={() => {
-                                    handleVolumeBoostInput(100);
-                                    onSetVolumeBoost(100);
-                                }}
-                                onMouseUp={handleVolumeBoostCommit}
-                                onTouchEnd={handleVolumeBoostCommit}
-                                onKeyUp={handleVolumeBoostCommit}
-                                className={`h-1 flex-1 cursor-pointer appearance-none rounded-full ${isLightMode ? 'bg-slate-300 accent-orange-600' : 'bg-white/20 accent-orange-500'}`}
-                            />
-                            <Volume2 size={10} className={`shrink-0 ${isLightMode ? 'text-slate-400' : 'text-gray-500'}`} />
-                        </div>
-                        <div className={`mt-1 text-[8px] font-medium ${isLightMode ? 'text-slate-400' : 'text-gray-600'}`}>
-                            Double-click to reset to 100%. Local setting only.
-                        </div>
+                                    }`}>
+                                    {volumeBoost}%
+                                </span>
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-2">
+                                <VolumeX size={10} className={`shrink-0 ${isLightMode ? 'text-slate-400' : 'text-gray-500'}`} />
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={600}
+                                    step={5}
+                                    value={volumeBoost}
+                                    onChange={(e) => handleVolumeBoostInput(Number(e.target.value))}
+                                    onDoubleClick={() => {
+                                        handleVolumeBoostInput(100);
+                                        onSetVolumeBoost(100);
+                                    }}
+                                    onMouseUp={handleVolumeBoostCommit}
+                                    onTouchEnd={handleVolumeBoostCommit}
+                                    onKeyUp={handleVolumeBoostCommit}
+                                    className={`h-1 flex-1 cursor-pointer appearance-none rounded-full ${isLightMode ? 'bg-slate-300 accent-orange-600' : 'bg-white/20 accent-orange-500'}`}
+                                />
+                                <Volume2 size={10} className={`shrink-0 ${isLightMode ? 'text-slate-400' : 'text-gray-500'}`} />
+                            </div>
+                            <div className={`mt-1 text-[8px] font-medium ${isLightMode ? 'text-slate-400' : 'text-gray-600'}`}>
+                                Double-click to reset to 100%. Local setting only.
+                            </div>
                         </div>
                     </div>
 

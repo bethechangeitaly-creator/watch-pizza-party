@@ -781,6 +781,7 @@ function sanitizeInitialMedia(raw: unknown): RoomCreationMedia | undefined {
 
 async function createRoomOnServer(payload: CreateRoomPayload): Promise<CreateRoomResponse> {
     let lastError: Error | null = null;
+    let isAbortError = false;
 
     for (const url of getRoomCreateUrls()) {
         const controller = new AbortController();
@@ -817,9 +818,18 @@ async function createRoomOnServer(payload: CreateRoomPayload): Promise<CreateRoo
             };
         } catch (error) {
             lastError = error instanceof Error ? error : new Error(String(error));
+            // Detect abort errors (timeout or network issues during server cold start)
+            if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+                isAbortError = true;
+            }
         } finally {
             clearTimeout(timeoutId);
         }
+    }
+
+    // If it was an abort/timeout error, provide a friendly message about server starting
+    if (isAbortError && !isLocalServerBaseUrl(getServerBaseUrl())) {
+        throw new Error('🍕 Pizza Server is starting up (takes ~30 sec). Please wait a moment and try again!');
     }
 
     throw lastError || new Error(`Cannot connect to server (${getServerBaseUrl()}).`);
