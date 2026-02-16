@@ -135,6 +135,7 @@ export function CreditsModal({ open, onClose, initialTab = 'about' }: CreditsMod
                             <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                                 <h3 className="mb-2 text-[11px] font-black text-blue-300">💡 Quick Tips</h3>
                                 <ul className="space-y-1.5 text-[10px] leading-relaxed text-gray-400">
+                                    <li>• Use one browser tab at a time to avoid sync confusion</li>
                                     <li>• Use the timeline to stay in sync</li>
                                     <li>• Chat in real-time with your party</li>
                                     <li>• Works best with stable internet</li>
