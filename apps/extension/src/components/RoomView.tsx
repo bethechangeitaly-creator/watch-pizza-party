@@ -149,7 +149,7 @@ export function RoomView({
     });
     const [syncAggression, setSyncAggression] = useState<number>(clampSyncAggression(syncAggressionSetting));
     const [volumeBoost, setVolumeBoost] = useState<number>(volumeBoostSetting);
-    const [showDonationReminder, setShowDonationReminder] = useState(false);
+    const [showDonationReminder, setShowDonationReminder] = useState(true);
     const donationTimerRef = useRef<number | null>(null);
     const me = room.participants.find((participant) => participant.username === username);
     const isHost = room.hostId === me?.id;
@@ -308,23 +308,8 @@ export function RoomView({
         playNeedSyncTone(reason);
     }, [isHost, latestMessage]);
 
-    // Donation reminder timer - shows after 40 minutes of room usage
+    // Donation reminder - shows on room start, then again 40 minutes after user closes it
     useEffect(() => {
-        const startDonationTimer = () => {
-            // Clear any existing timer
-            if (donationTimerRef.current !== null) {
-                window.clearTimeout(donationTimerRef.current);
-            }
-
-            // Start new 40-minute timer
-            donationTimerRef.current = window.setTimeout(() => {
-                setShowDonationReminder(true);
-            }, DONATION_REMINDER_INTERVAL_MS);
-        };
-
-        // Start timer when component mounts
-        startDonationTimer();
-
         // Cleanup timer on unmount
         return () => {
             if (donationTimerRef.current !== null) {
