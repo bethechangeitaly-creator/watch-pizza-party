@@ -32,7 +32,8 @@
     "host_permissions": [
         "https://*.netflix.com/*",
         "https://*.youtube.com/*",
-        "https://youtu.be/*"
+        "https://youtu.be/*",
+        "https://watch-pizza-party.onrender.com/*"
     ],
     "content_scripts": [
         {
