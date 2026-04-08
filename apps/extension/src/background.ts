@@ -282,6 +282,7 @@ let lastViewerHandledNavigateSeq = 0;
 
 let hostHeartbeatTimer: number | null = null;
 let viewerStatusTimer: number | null = null;
+let renderKeepAliveTimer: number | null = null;
 let viewerPostSyncTimer: number | null = null;
 let floatingWidgetTimer: number | null = null;
 const minimizedTabs = new Set<number>();
@@ -1163,6 +1164,10 @@ function stopLoops() {
         clearTimeout(joinTimeoutTimer);
         joinTimeoutTimer = null;
     }
+    if (renderKeepAliveTimer !== null) {
+        clearInterval(renderKeepAliveTimer);
+        renderKeepAliveTimer = null;
+    }
     if (floatingWidgetTimer !== null) {
         clearInterval(floatingWidgetTimer);
         floatingWidgetTimer = null;
@@ -1334,6 +1339,13 @@ function refreshRoleLoops() {
         floatingWidgetTimer = setInterval(() => {
             void pushFloatingWidgetStatus();
         }, 1600);
+    }
+
+    if (renderKeepAliveTimer === null) {
+        renderKeepAliveTimer = setInterval(() => {
+            void keepRenderServerAwake();
+        }, 5 * 60 * 1000); // Ping every 5 minutes to stay ahead of the 15m timeout
+        void keepRenderServerAwake(); // Initial ping
     }
 
     if (isHost()) {
@@ -1929,6 +1941,27 @@ async function emitHostRoomUrlUpdateFromTab(tabId: number, incomingTab?: chrome.
     setTimeout(() => {
         void requestAndEmitHostSnapshot(true, 'event');
     }, 650);
+}
+
+async function keepRenderServerAwake() {
+    if (!session.active) return;
+    const url = getServerBaseUrl();
+    // Only ping if it's external (e.g. Render)
+    if (!url.includes('onrender.com')) return;
+
+    try {
+        console.log('[WatchParty] Render Keep-Alive Ping...');
+        // We hit the root URL which is lightweight and returns a 200 OK
+        const res = await fetch(`${url}/`, { 
+            method: 'GET',
+            cache: 'no-store'
+        });
+        if (res.ok) {
+            console.log('[WatchParty] Render Keep-Alive successful');
+        }
+    } catch (err) {
+        console.warn('[WatchParty] Render Keep-Alive ping failed:', err);
+    }
 }
 
 async function reportViewerStatus() {

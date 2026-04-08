@@ -179,7 +179,7 @@ export class RoomManager {
     // New method to cleanup old rooms (can be called periodically)
     cleanupRooms() {
         const now = Date.now();
-        const EXPIRY = 5 * 60 * 1000; // 5 minutes grace period
+        const EXPIRY = 30 * 60 * 1000; // 30 minutes grace period
 
         for (const [id, room] of this.rooms.entries()) {
             if (room.participants.length === 0 && (now - room.lastActivity) > EXPIRY) {
