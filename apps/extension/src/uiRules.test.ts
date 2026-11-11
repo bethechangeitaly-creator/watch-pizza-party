@@ -8,7 +8,8 @@ const RULES: Array<[RegExp, string]> = [
     [/text-\[\d+px\]/, 'arbitrary text size (use text-meta/body/title/display)'],
     [/bg-gradient-to-/, 'gradient'],
     [/shadow-\w+-\d{3}\//, 'coloured glow shadow'],
-    [/tracking-widest/, 'tracking-widest'],
+    [/tracking-wid/, 'wide letter-spacing'],
+    [/\buppercase\b/, 'uppercase label'],
     [/isLightMode/, 'per-class theme ternary (use tokens)'],
 ];
 const HEX = /#[0-9a-fA-F]{6}\b/;

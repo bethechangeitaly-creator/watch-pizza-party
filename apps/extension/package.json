@@ -8,6 +8,7 @@
         "test": "vitest run"
     },
     "dependencies": {
+        "@fontsource/nunito": "^5.1.0",
         "@watch-party/shared": "*",
         "clsx": "^2.1.0",
         "lucide-react": "^0.344.0",

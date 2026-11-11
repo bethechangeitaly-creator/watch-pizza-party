@@ -2,38 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens (spec D7). Values are RGB triplets so Tailwind can apply opacity. */
+/* Design tokens: "Warm & friendly" light and "Dark wine" night (panel redesign spec). RGB triplets. */
 :root,
-:root[data-theme='dark'] {
-    color-scheme: dark;
-    --bg: 11 11 12;
-    --surface: 20 20 22;
-    --surface-2: 28 28 31;
-    --line-rgb: 255 255 255;
-    --line-a: 0.06;
-    --text: 237 237 239;
-    --muted: 139 139 147;
-    --accent: 255 106 61;
-    --accent-fg: 26 10 4;
-    --success: 61 214 140;
-    --warning: 245 184 61;
-    --danger: 255 92 92;
-}
-
 :root[data-theme='light'] {
     color-scheme: light;
-    --bg: 250 250 249;
+    --bg: 255 251 245;
     --surface: 255 255 255;
-    --surface-2: 242 242 240;
+    --surface-2: 245 237 227;
     --line-rgb: 0 0 0;
     --line-a: 0.08;
-    --text: 24 24 27;
-    --muted: 107 107 115;
-    --accent: 229 83 42;
-    --accent-fg: 26 10 4;
-    --success: 22 163 94;
-    --warning: 180 120 10;
-    --danger: 220 38 38;
+    --text: 43 36 32;
+    --muted: 118 102 92;
+    --accent: 242 107 58;
+    --accent-strong: 201 70 31;
+    --accent-fg: 255 255 255;
+    --cheese: 255 233 199;
+    --cheese-fg: 138 75 18;
+    --ok: 231 248 238;
+    --ok-fg: 22 128 77;
+    --warn: 255 243 214;
+    --warn-fg: 138 90 0;
+    --bad: 253 231 223;
+    --bad-fg: 181 66 27;
+    --invite: 227 243 253;
+    --invite-fg: 26 108 151;
+    --wa: 226 247 236;
+    --wa-fg: 18 112 68;
+    --mail: 239 235 255;
+    --mail-fg: 90 71 214;
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --bg: 26 14 15;
+    --surface: 36 20 26;
+    --surface-2: 42 23 25;
+    --line-rgb: 255 255 255;
+    --line-a: 0.07;
+    --text: 245 233 228;
+    --muted: 179 154 148;
+    --accent: 242 107 58;
+    --accent-strong: 201 70 31;
+    --accent-fg: 255 255 255;
+    --cheese: 58 38 20;
+    --cheese-fg: 255 197 138;
+    --ok: 22 48 31;
+    --ok-fg: 110 231 164;
+    --warn: 58 42 16;
+    --warn-fg: 245 194 107;
+    --bad: 58 26 22;
+    --bad-fg: 255 154 122;
+    --invite: 20 40 58;
+    --invite-fg: 140 203 245;
+    --wa: 19 45 32;
+    --wa-fg: 123 227 168;
+    --mail: 35 29 63;
+    --mail-fg: 185 173 255;
 }
 
 @layer base {
@@ -47,8 +71,9 @@
     body {
         background: rgb(var(--bg));
         color: rgb(var(--text));
-        font-size: 13px;
-        line-height: 18px;
+        font-family: Nunito, ui-rounded, ui-sans-serif, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        line-height: 20px;
         -webkit-font-smoothing: antialiased;
     }
 
