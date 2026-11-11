@@ -12,6 +12,7 @@ import {
 } from '../lib/messages';
 import { planViewerNavigation, shouldAcceptHostEvent } from './mediaTab';
 import { VolumeBoost } from './volume';
+import { ENTRIES_KEY, mergeEntries } from '../lib/timeline';
 import { ServerConnection } from './connection';
 import { createRoomWithRetry } from './createRoom';
 import { SessionController } from './sessionController';
@@ -89,7 +90,35 @@ async function followTimeline(timeline: Timeline, force: boolean): Promise<void>
 function handleTimeline(timeline: Timeline, force: boolean): void {
     void followTimeline(timeline, force);
 }
-function handleEntries(_entries: TimelineEntry[], _replace: boolean): void {}
+// ── Chat timeline cache (survives service-worker restarts via storage.session) ─
+
+let entriesCache: { roomId: string | null; entries: TimelineEntry[] } = { roomId: null, entries: [] };
+let entriesWriteTimer: ReturnType<typeof setTimeout> | null = null;
+
+function persistEntries(): void {
+    if (entriesWriteTimer) clearTimeout(entriesWriteTimer);
+    entriesWriteTimer = setTimeout(() => {
+        entriesWriteTimer = null;
+        void chrome.storage.session.set({ [ENTRIES_KEY]: entriesCache }).catch(() => {});
+    }, 500);
+}
+
+function handleEntries(entries: TimelineEntry[], replace: boolean): void {
+    const roomId = controller.state().roomId;
+    if (entriesCache.roomId !== roomId) entriesCache = { roomId, entries: [] };
+    // chat.history is authoritative for chat; system entries only exist locally, so keep them.
+    const base = replace ? entriesCache.entries.filter((e) => e.kind === 'system') : entriesCache.entries;
+    entriesCache = { roomId, entries: mergeEntries(base, entries) };
+    broadcast({ type: 'bg.entries', entries: entriesCache.entries });
+    persistEntries();
+}
+
+function clearEntriesIfLeft(state: PublicSession): void {
+    if (state.roomId === null && entriesCache.roomId !== null) {
+        entriesCache = { roomId: null, entries: [] };
+        void chrome.storage.session.remove(ENTRIES_KEY).catch(() => {});
+    }
+}
 
 // ── Floating bubble (shown in the media tab while the panel is closed) ────────
 
@@ -214,6 +243,7 @@ const controller = new SessionController({
         // Capture follows the media tab: changing, closing or leaving it stops the boost.
         if (volume.capturingTabId !== null && volume.capturingTabId !== state.mediaTab?.tabId) void volume.stop();
         broadcast({ type: 'bg.session', state });
+        clearEntriesIfLeft(state);
         syncContentActivation(state);
         pushBubble();
     },
@@ -353,6 +383,9 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 async function bootstrap(): Promise<void> {
+    const area: Record<string, unknown> = await chrome.storage.session.get(ENTRIES_KEY).catch(() => ({}));
+    const stored = area[ENTRIES_KEY] as typeof entriesCache | undefined;
+    if (stored && Array.isArray(stored.entries)) entriesCache = stored;
     await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
     serverUrl = await loadServerUrl(storage);
     await migrateLegacyKeys(storage);
