@@ -13,6 +13,7 @@ import {
 import { isSupportedSite } from '@watch-party/shared';
 import { mediaKey, planViewerNavigation, shouldAcceptHostEvent } from './mediaTab';
 import { VolumeBoost } from './volume';
+import { probeContentAlive } from '../content/alive';
 import { ENTRIES_KEY, mergeEntries } from '../lib/timeline';
 import { ServerConnection } from './connection';
 import { createRoomWithRetry } from './createRoom';
@@ -171,7 +172,7 @@ async function ensureContentScript(tabId: number): Promise<void> {
     try {
         const [probe] = await chrome.scripting.executeScript({
             target: { tabId },
-            func: () => (globalThis as { __wppContentAlive?: boolean }).__wppContentAlive === true,
+            func: probeContentAlive,
         });
         if (probe?.result) return;
         await chrome.scripting.executeScript({ target: { tabId }, files: ['player-bridge.js'], world: 'MAIN' });

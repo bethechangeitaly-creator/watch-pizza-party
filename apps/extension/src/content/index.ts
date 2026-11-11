@@ -1,5 +1,6 @@
 import type { BackgroundToContent, ContentToBackground } from '../lib/messages';
 import { adapterFor } from './adapters';
+import { isAlive, markAlive, runtimeAlive } from './alive';
 import { createBubble } from './bubble';
 import { HostReporter } from './hostReporter';
 import { ViewerFollower } from './viewerFollower';
@@ -7,9 +8,9 @@ import { ViewerFollower } from './viewerFollower';
 const TICK_MS = 250;
 
 (() => {
-    const flags = globalThis as { __wppContentAlive?: boolean };
-    if (flags.__wppContentAlive || window.top !== window) return;
-    flags.__wppContentAlive = true;
+    const scope = globalThis as unknown as Record<string, unknown>;
+    if (isAlive(scope) || window.top !== window) return; // a live copy is already running
+    markAlive(scope, runtimeAlive);
 
     let timer: ReturnType<typeof setInterval> | null = null;
     let reporter: HostReporter | null = null;
