@@ -245,6 +245,9 @@ function handleContentMessage(message: ContentToBackground, tabId: number): void
             });
             return;
         }
+        case 'content.needsClick':
+            if (fromMediaTab) controller.setNeedsVideoClick(message.value);
+            return;
         case 'content.viewerStatus':
             if (!fromMediaTab || state.isHost) return;
             controller.send({ type: 'sync.viewer_status', payload: { rev: message.rev, driftSec: message.driftSec, state: message.state } });

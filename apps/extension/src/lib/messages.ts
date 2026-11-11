@@ -84,6 +84,7 @@ export type ContentToBackground =
     | { type: 'content.hello'; url: string }
     | { type: 'content.hostEvent'; event: HostPlayerEvent }
     | { type: 'content.viewerStatus'; rev: number; driftSec: number; state: ViewerSyncState; needsClick?: boolean }
+    | { type: 'content.needsClick'; value: boolean }
     | { type: 'content.openPanel' }
     | { type: 'content.dismissBubble' };
 
@@ -118,6 +119,7 @@ export const ContentToBackgroundSchema = z.discriminatedUnion('type', [
         state: ViewerSyncStateSchema,
         needsClick: z.boolean().optional(),
     }),
+    z.object({ type: z.literal('content.needsClick'), value: z.boolean() }),
     z.object({ type: z.literal('content.openPanel') }),
     z.object({ type: z.literal('content.dismissBubble') }),
 ]);

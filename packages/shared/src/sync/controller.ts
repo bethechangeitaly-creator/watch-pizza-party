@@ -15,7 +15,7 @@ export const SYNC_PROFILES: Record<SupportedPlatform, SyncProfile> = {
     youtube: { seekThresholdSec: 1.0, seekCooldownMs: 1500, seekLeadSec: 0.1, deadbandSec: 0.08, rateNudge: true, maxRateAdjust: 0.05, convergeSec: 4 },
     netflix: { seekThresholdSec: 1.5, seekCooldownMs: 4000, seekLeadSec: 0.3, deadbandSec: 0.4, rateNudge: false, maxRateAdjust: 0, convergeSec: 4 },
     // Prime Video: seeks only (its player resets the rate), with a wider margin because episode time is derived around ads.
-    prime: { seekThresholdSec: 2.0, seekCooldownMs: 4000, seekLeadSec: 0.5, deadbandSec: 0.6, rateNudge: false, maxRateAdjust: 0, convergeSec: 4 },
+    prime: { seekThresholdSec: 2.0, seekCooldownMs: 4000, seekLeadSec: 0.5, deadbandSec: 1.2, rateNudge: false, maxRateAdjust: 0, convergeSec: 4 },
 };
 
 export type PlayerSnapshot = { positionSec: number; paused: boolean; rate: number; buffering: boolean; inAd: boolean };

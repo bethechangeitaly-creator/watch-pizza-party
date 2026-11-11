@@ -66,7 +66,10 @@ export function statusLine(session: PublicSession, activeTab: ActiveTab | null, 
         };
     }
 
-    if (!session.isHost && session.needsVideoClick) return { tone: 'warn', text: 'Click once on the video to start syncing' };
+    if (session.needsVideoClick) {
+        // The host must not click (it would pause for everyone); hovering shows Prime's time just as well.
+        return { tone: 'warn', text: session.isHost ? 'Move your mouse over the video once to start syncing' : 'Click once on the video to start syncing' };
+    }
 
     const line = baseLine(session);
     // A video open in another tab can become the party tab with one click.

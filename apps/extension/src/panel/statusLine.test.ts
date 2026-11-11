@@ -57,7 +57,7 @@ describe('statusLine', () => {
     it('asks a viewer to click the video once when it is needed', () => {
         const session = { ...sessionWith({ playing: true, mySync: 'drifting' }), needsVideoClick: true };
         expect(statusLine(session, otherSite)).toEqual({ tone: 'warn', text: 'Click once on the video to start syncing' });
-        expect(statusLine({ ...session, isHost: true }, otherSite).text).not.toMatch(/Click once/);
+        expect(statusLine({ ...session, isHost: true }, otherSite).text).toBe('Move your mouse over the video once to start syncing');
     });
 
     it('the host on a Prime Video tab without access gets the Allow button too (party started elsewhere)', () => {
@@ -69,5 +69,10 @@ describe('statusLine', () => {
             action: { label: 'Allow Prime Video', request: { type: 'session.useTab', tabId: 1 }, needsPrime: true },
         });
         expect(statusLine(session, prime, true).text).not.toMatch(/Allow/);
+    });
+
+    it('asks the host to move the mouse over the video once (a click would pause it)', () => {
+        const session = { ...sessionWith({ isHost: true, playing: true }), needsVideoClick: true };
+        expect(statusLine(session, otherSite)).toEqual({ tone: 'warn', text: 'Move your mouse over the video once to start syncing' });
     });
 });

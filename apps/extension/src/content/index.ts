@@ -39,7 +39,12 @@ const TICK_MS = 250;
         const adapter = adapterFor(location, document);
         if (!adapter) return;
         if (role === 'host') {
-            reporter = new HostReporter(adapter, (event) => send({ type: 'content.hostEvent', event }), Date.now);
+            reporter = new HostReporter(
+                adapter,
+                (event) => send({ type: 'content.hostEvent', event }),
+                Date.now,
+                (needed) => send({ type: 'content.needsClick', value: needed }),
+            );
         } else {
             follower = new ViewerFollower(adapter, (status) => send({ type: 'content.viewerStatus', ...status }), Date.now);
         }

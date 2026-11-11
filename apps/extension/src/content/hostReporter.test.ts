@@ -22,12 +22,26 @@ describe('classifyHostChange', () => {
 });
 
 describe('HostReporter', () => {
+    it('tells the panel when the host must show Prime its time once, and when that is done', () => {
+        const clock = manualClock();
+        const adapter = fakeAdapter();
+        const needs: boolean[] = [];
+        const reporter = new HostReporter(adapter, () => {}, clock.now, (v) => needs.push(v));
+        adapter.uncalibrated = true;
+        reporter.tick();
+        reporter.tick();
+        adapter.uncalibrated = false;
+        reporter.tick();
+        expect(needs).toEqual([true, false]);
+    });
+
     const setup = (init?: Parameters<typeof fakeAdapter>[0]) => {
         const clock = manualClock();
         const adapter = fakeAdapter(init);
         const sent: HostPlayerEvent[] = [];
-        const reporter = new HostReporter(adapter, (e) => sent.push(e), clock.now);
-        return { clock, adapter, sent, reporter };
+        const needs: boolean[] = [];
+        const reporter = new HostReporter(adapter, (e) => sent.push(e), clock.now, (v) => needs.push(v));
+        return { clock, adapter, sent, reporter, needs };
     };
 
     it('host reporter is silent without a media id (YouTube home)', () => {

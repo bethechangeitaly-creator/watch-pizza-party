@@ -28,14 +28,22 @@ export class HostReporter {
     private lastContentPositionSec = 0;
     private contentMediaKey: string | null = null;
     private buffering = false;
+    private needsClick = false;
 
     constructor(
         private readonly adapter: PlayerAdapter,
         private readonly send: (event: HostPlayerEvent) => void,
         private readonly now: () => number,
+        /** Prime Video: true until the player has shown its time once (hover), so times are exact. */
+        private readonly onNeedsClick: (needed: boolean) => void = () => {},
     ) {}
 
     tick(): void {
+        const needsClick = this.adapter.needsUserClick?.() ?? false;
+        if (needsClick !== this.needsClick) {
+            this.needsClick = needsClick;
+            this.onNeedsClick(needsClick);
+        }
         const media = this.adapter.media();
         const snap = this.adapter.snapshot();
         if (!media || !snap) {
