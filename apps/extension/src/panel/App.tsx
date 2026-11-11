@@ -91,7 +91,7 @@ export function App() {
                 session={session}
                 entries={entries}
                 send={send}
-                activeTabId={activeTab?.tabId ?? null}
+                activeTab={activeTab}
                 extensionId={chrome.runtime.id}
                 version={version}
                 themePref={themePref}

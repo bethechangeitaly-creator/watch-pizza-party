@@ -16,10 +16,13 @@ function props(over: Partial<Parameters<typeof Landing>[0]> = {}) {
 }
 
 describe('Landing', () => {
-    it('disables Start on a non-video tab', () => {
-        render(<Landing {...props({ activeTab: { tabId: 1, url: 'https://www.youtube.com/' } })} />);
-        expect(screen.getByRole('button', { name: 'Start a party' })).toBeDisabled();
-        expect(screen.getByText('Open a YouTube or Netflix video first')).toBeInTheDocument();
+    it('can start a party from any tab', async () => {
+        const user = userEvent.setup();
+        const p = props({ activeTab: { tabId: 1, url: 'https://www.youtube.com/' } });
+        render(<Landing {...p} />);
+        expect(screen.getByText('You can open a YouTube or Netflix video after starting.')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Start a party' }));
+        expect(p.send).toHaveBeenCalledWith({ type: 'session.create', username: expect.any(String), tabId: 1 });
     });
 
     it('starts a party from a video tab', async () => {

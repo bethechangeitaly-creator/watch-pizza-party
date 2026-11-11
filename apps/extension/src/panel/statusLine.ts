@@ -1,4 +1,6 @@
+import { extractMedia } from '@watch-party/shared';
 import type { PanelRequest, PublicSession } from '../lib/messages';
+import type { ActiveTab } from './activeTab';
 
 export type StatusLine = {
     tone: 'ok' | 'warn' | 'muted' | 'danger';
@@ -6,27 +8,18 @@ export type StatusLine = {
     action?: { label: 'Use this tab' | 'Sync everyone' | 'Resync'; request: PanelRequest };
 };
 
-/** The one-line status under the room header (copy from spec D7). */
-export function statusLine(session: PublicSession, activeTabId: number | null): StatusLine {
-    if (session.status === 'reconnecting') return { tone: 'warn', text: 'Reconnecting…' };
+const useTab = (tabId: number): StatusLine['action'] => ({ label: 'Use this tab', request: { type: 'session.useTab', tabId } });
 
-    if (!session.mediaTab) {
-        return {
-            tone: 'warn',
-            text: 'Pick a tab to watch in',
-            ...(activeTabId !== null ? { action: { label: 'Use this tab', request: { type: 'session.useTab', tabId: activeTabId } } } : {}),
-        };
-    }
-
+function baseLine(session: PublicSession): StatusLine {
     if (session.isHost) {
-        const someoneDrifting = session.room?.participants.some((p) => p.id !== session.me?.userId && p.status === 'drifting');
+        if (!session.room?.timeline) return { tone: 'muted', text: 'Open a YouTube or Netflix video to start watching' };
+        const someoneDrifting = session.room.participants.some((p) => p.id !== session.me?.userId && p.status === 'drifting');
         return {
             tone: 'ok',
             text: "You're the host",
             ...(someoneDrifting ? { action: { label: 'Sync everyone', request: { type: 'sync.force' } } } : {}),
         };
     }
-
     if (session.mySync === 'ad') return { tone: 'muted', text: "You're in an ad" };
     if (session.room?.timeline?.inAd) return { tone: 'muted', text: "Waiting for the host's ad" };
     switch (session.mySync) {
@@ -41,4 +34,19 @@ export function statusLine(session: PublicSession, activeTabId: number | null): 
         default:
             return { tone: 'muted', text: 'Waiting for the video…' };
     }
+}
+
+/** The one-line status under the room header (copy from spec D7). */
+export function statusLine(session: PublicSession, activeTab: ActiveTab | null): StatusLine {
+    if (session.status === 'reconnecting') return { tone: 'warn', text: 'Reconnecting…' };
+
+    if (!session.mediaTab) {
+        return { tone: 'warn', text: 'Pick a tab to watch in', ...(activeTab ? { action: useTab(activeTab.tabId) } : {}) };
+    }
+
+    const line = baseLine(session);
+    // A video open in another tab can become the party tab with one click.
+    const videoElsewhere = activeTab && activeTab.tabId !== session.mediaTab.tabId && activeTab.url && extractMedia(activeTab.url);
+    if (!line.action && videoElsewhere) return { ...line, action: useTab(activeTab.tabId) };
+    return line;
 }

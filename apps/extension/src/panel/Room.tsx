@@ -5,6 +5,7 @@ import { Chat } from './Chat';
 import { MenuSheet } from './MenuSheet';
 import { PeopleSheet } from './PeopleSheet';
 import { RoomHeader } from './RoomHeader';
+import type { ActiveTab } from './activeTab';
 import { statusLine, type StatusLine } from './statusLine';
 import type { ThemePref } from './theme';
 import { Button } from './ui/Button';
@@ -20,7 +21,7 @@ export type RoomProps = {
     session: PublicSession;
     entries: TimelineEntry[];
     send: (r: PanelRequest) => Promise<PanelResponse>;
-    activeTabId: number | null;
+    activeTab: ActiveTab | null;
     extensionId: string;
     version: string;
     themePref: ThemePref;
@@ -37,7 +38,7 @@ export function Room(props: RoomProps) {
     const [sheet, setSheet] = useState<'menu' | 'people' | 'about' | null>(null);
     const room = session.room;
     if (!room) return null;
-    const status = statusLine(session, props.activeTabId);
+    const status = statusLine(session, props.activeTab);
     const nowPlaying = room.timeline?.title ?? (room.timeline ? 'Untitled video' : 'Nothing playing yet');
     const platform = room.timeline ? (room.timeline.platform === 'youtube' ? 'YouTube' : 'Netflix') : null;
 

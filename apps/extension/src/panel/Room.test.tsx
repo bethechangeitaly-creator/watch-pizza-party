@@ -10,7 +10,7 @@ function props(over: Partial<Parameters<typeof Room>[0]> = {}) {
     const session = sessionWith({ mySync: 'synced' });
     const send = vi.fn(async (_r: PanelRequest): Promise<PanelResponse> => ({ ok: true, state: session }));
     return {
-        session, entries: [], send, activeTabId: 1, extensionId: 'abc', version: '2.0.0',
+        session, entries: [], send, activeTab: { tabId: 1, url: 'https://example.com/' }, extensionId: 'abc', version: '2.0.0',
         themePref: 'system' as const, onThemeChange: vi.fn(), soundsEnabled: false, onSoundsChange: vi.fn(),
         gifsAvailable: false, donate: false, onDonateClose: vi.fn(), ...over,
     };

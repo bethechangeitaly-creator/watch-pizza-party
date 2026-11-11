@@ -10,11 +10,12 @@ export function sessionWith(o: {
     mySync?: PublicSession['mySync'];
     driftingViewer?: boolean;
     timelineInAd?: boolean;
+    playing?: boolean;
 } = {}): PublicSession {
     const participants: Room['participants'] = [{ ...me, role: o.isHost ? 'host' : 'viewer' }];
     participants.push({ id: 'u2', username: 'Marco', avatarColor: '#FF6A3D', role: o.isHost ? 'viewer' : 'host', joinedAt: 0, status: o.driftingViewer ? 'drifting' : 'synced' });
-    const timeline: Timeline | null = o.timelineInAd
-        ? { rev: 1, platform: 'youtube', mediaId: 'dQw4w9WgXcQ', title: 'Song', positionSec: 1, anchorServerMs: 0, rate: 1, paused: false, inAd: true, cause: 'ad' }
+    const timeline: Timeline | null = o.timelineInAd || o.playing
+        ? { rev: 1, platform: 'youtube', mediaId: 'dQw4w9WgXcQ', title: 'Song', positionSec: 1, anchorServerMs: 0, rate: 1, paused: false, inAd: !!o.timelineInAd, cause: o.timelineInAd ? 'ad' : 'play' }
         : null;
     return {
         status: o.status ?? 'joined',

@@ -35,7 +35,7 @@ export function Landing({
     const sessionError = status === 'error' ? session?.error?.message ?? null : null;
 
     const start = () => {
-        if (!activeTab || !media) return;
+        if (!activeTab) return;
         setLastAction('create');
         void send({ type: 'session.create', username, tabId: activeTab.tabId });
     };
@@ -97,13 +97,13 @@ export function Landing({
             </div>
 
             <section className="flex flex-col gap-2">
-                <Button variant="primary" onClick={start} disabled={!media || busy} loading={busy && lastAction === 'create'}>
+                <Button variant="primary" onClick={start} disabled={!activeTab || busy} loading={busy && lastAction === 'create'}>
                     Start a party
                 </Button>
                 {media ? (
                     <p className="truncate text-meta text-muted">Using: {activeTab?.title || 'this video'}</p>
                 ) : (
-                    <p className="text-meta text-muted">Open a YouTube or Netflix video first</p>
+                    <p className="text-meta text-muted">You can open a YouTube or Netflix video after starting.</p>
                 )}
                 {status === 'waking' && <p className="text-meta text-warning">{WAKING_NOTE}</p>}
                 {sessionError && lastAction !== 'join' && <p role="alert" className="text-meta text-danger">{sessionError}</p>}
