@@ -11,7 +11,7 @@
         "build:server": "npm run build --workspace=@watch-party/shared && npm run build --workspace=@watch-party/server",
         "start:server": "NODE_ENV=production node apps/server/dist/index.js",
         "build:extension": "npm run build --workspace=@watch-party/extension",
-        "test": "npm test --workspaces"
+        "test": "npm test --workspaces --if-present"
     },
     "devDependencies": {
         "typescript": "^5.3.3",

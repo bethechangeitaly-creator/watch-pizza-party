@@ -1,3 +1,4 @@
+// Legacy v1 exports — removed in Task 23 once the old UI is gone.
 export {
     PlatformSchema,
     type Platform,
@@ -11,5 +12,8 @@ export {
     type ChatMessage,
     WSMessageSchema,
     type WSMessage,
-    generateRandomName
+    generateRandomName as generateLegacyRandomName
 } from './schemas';
+
+export * from './media';
+export * from './names';
