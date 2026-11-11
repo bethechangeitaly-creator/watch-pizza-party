@@ -141,6 +141,22 @@ export class RoomStore {
         return result;
     }
 
+    addChatMessage(roomId: string, userId: string, text: string): ChatMessage | null {
+        const record = this.rooms.get(roomId);
+        const member = record?.members.get(userId);
+        if (!record || !member) return null;
+        const message: ChatMessage = {
+            id: nanoid(12),
+            userId,
+            username: member.user.username,
+            avatarColor: member.user.avatarColor,
+            text,
+            timestamp: this.now(),
+        };
+        record.chat.push(message);
+        return message;
+    }
+
     isHost(roomId: string, userId: string): boolean {
         return this.rooms.get(roomId)?.hostId === userId;
     }

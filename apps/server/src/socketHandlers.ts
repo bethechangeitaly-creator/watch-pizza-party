@@ -9,6 +9,7 @@ import {
     type ServerMessage,
 } from '@watch-party/shared';
 import type { RoomStore } from './roomStore';
+import { IP_LIMITS, KeyedLimiter, SOCKET_LIMITS, TokenBucket, clientIp } from './rateLimit';
 
 const ERROR_TEXT: Record<'room_not_found' | 'room_full', string> = {
     room_not_found: 'Room not found. Check the code.',
@@ -17,7 +18,10 @@ const ERROR_TEXT: Record<'room_not_found' | 'room_full', string> = {
 
 type SocketSession = { roomId: string; userId: string } | null;
 
-export function setupSocketHandlers(io: Server, store: RoomStore, _deps: { now: () => number }) {
+const TOO_FAST = "You're doing that too fast.";
+
+export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: () => number }) {
+    const ipJoins = new KeyedLimiter(IP_LIMITS.join[0], IP_LIMITS.join[1], deps.now);
     const send = (socket: Socket, msg: ServerMessage) => socket.emit(MESSAGE_EVENT, msg);
     const broadcast = (roomId: string, msg: ServerMessage) => io.to(roomId).emit(MESSAGE_EVENT, msg);
     const sendError = (socket: Socket, code: ErrorCode, message: string) =>
@@ -29,10 +33,25 @@ export function setupSocketHandlers(io: Server, store: RoomStore, _deps: { now: 
 
     io.on('connection', (socket) => {
         let session: SocketSession = null;
+        const ip = clientIp(socket.handshake.headers, socket.handshake.address);
+        const bucket = (name: keyof typeof SOCKET_LIMITS) =>
+            new TokenBucket(SOCKET_LIMITS[name][0], SOCKET_LIMITS[name][1], deps.now);
+        const limits = {
+            chat: bucket('chat'),
+            hostUpdate: bucket('hostUpdate'),
+            viewerStatus: bucket('viewerStatus'),
+            request: bucket('request'),
+            join: bucket('join'),
+            time: bucket('time'),
+        };
 
         const handle = (msg: ClientMessage) => {
             switch (msg.type) {
                 case 'room.join': {
+                    if (!limits.join.take() || !ipJoins.take(ip)) {
+                        sendError(socket, 'rate_limited', TOO_FAST);
+                        return;
+                    }
                     const outcome = store.join(msg.payload.roomId, {
                         token: msg.payload.token,
                         username: msg.payload.username,
@@ -66,6 +85,16 @@ export function setupSocketHandlers(io: Server, store: RoomStore, _deps: { now: 
                     store.removeMember(roomId, userId);
                     socket.leave(roomId);
                     broadcastRoomState(roomId);
+                    return;
+                }
+                case 'chat.send': {
+                    if (!session) return;
+                    if (!limits.chat.take()) {
+                        sendError(socket, 'rate_limited', TOO_FAST);
+                        return;
+                    }
+                    const message = store.addChatMessage(session.roomId, session.userId, msg.payload.text);
+                    if (message) broadcast(session.roomId, { type: 'chat.message', payload: message });
                     return;
                 }
                 default:
