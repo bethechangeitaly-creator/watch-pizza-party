@@ -15,10 +15,13 @@ export type AppOptions = {
     fetchImpl?: typeof fetch;
     /** Extra exact origins allowed by CORS, on top of chrome-extension:// and localhost. */
     allowedOrigins?: string[];
+    /** Set when a reverse proxy (Render, Fly, nginx…) sits in front and appends X-Forwarded-For. */
+    trustProxy?: boolean;
 };
 
 export function createApp(opts: AppOptions = {}) {
     const now = opts.now ?? Date.now;
+    const trustProxy = opts.trustProxy ?? false;
     const sweepIntervalMs = opts.sweepIntervalMs ?? 5000;
 
     const extraOrigins = opts.allowedOrigins ?? [];
@@ -31,7 +34,7 @@ export function createApp(opts: AppOptions = {}) {
     app.get('/health', (_req, res) => {
         res.json({ ok: true });
     });
-    app.get('/gifs', createGifRoute({ apiKey: opts.giphyApiKey, fetchImpl: opts.fetchImpl ?? fetch, now }));
+    app.get('/gifs', createGifRoute({ apiKey: opts.giphyApiKey, fetchImpl: opts.fetchImpl ?? fetch, now, trustProxy }));
 
     const httpServer: HttpServer = createServer(app);
     const io = new Server(httpServer, {
@@ -42,7 +45,7 @@ export function createApp(opts: AppOptions = {}) {
     const store = new RoomStore(now);
 
     app.post('/rooms', (req, res) => {
-        if (!roomCreation.take(clientIp(req.headers, req.socket.remoteAddress ?? 'unknown'))) {
+        if (!roomCreation.take(clientIp(req.headers, req.socket.remoteAddress ?? 'unknown', trustProxy))) {
             res.status(429).json({ code: 'rate_limited' });
             return;
         }
@@ -58,7 +61,7 @@ export function createApp(opts: AppOptions = {}) {
         res.json(store.createRoom(parsed.data.username));
     });
 
-    const sockets = setupSocketHandlers(io, store, { now });
+    const sockets = setupSocketHandlers(io, store, { now, trustProxy });
 
     const runSweep = () => {
         const result = store.sweep();

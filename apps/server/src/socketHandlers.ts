@@ -23,7 +23,7 @@ type SocketSession = { roomId: string; userId: string } | null;
 const TOO_FAST = "You're doing that too fast.";
 const NOT_HOST = 'Only the host controls playback.';
 
-export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: () => number }) {
+export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: () => number; trustProxy: boolean }) {
     const ipJoins = new KeyedLimiter(IP_LIMITS.join[0], IP_LIMITS.join[1], deps.now);
     const send = (socket: Socket, msg: ServerMessage) => socket.emit(MESSAGE_EVENT, msg);
     const broadcast = (roomId: string, msg: ServerMessage) => io.to(roomId).emit(MESSAGE_EVENT, msg);
@@ -51,7 +51,7 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
 
     io.on('connection', (socket) => {
         let session: SocketSession = null;
-        const ip = clientIp(socket.handshake.headers, socket.handshake.address);
+        const ip = clientIp(socket.handshake.headers, socket.handshake.address, deps.trustProxy);
         const bucket = (name: keyof typeof SOCKET_LIMITS) =>
             new TokenBucket(SOCKET_LIMITS[name][0], SOCKET_LIMITS[name][1], deps.now);
         const limits = {

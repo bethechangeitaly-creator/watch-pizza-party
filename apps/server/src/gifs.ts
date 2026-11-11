@@ -20,7 +20,7 @@ function toGif(item: GiphyItem): Gif | null {
     return { id: item.id, url, width, height };
 }
 
-export function createGifRoute(opts: { apiKey?: string; fetchImpl: typeof fetch; now: () => number }): RequestHandler {
+export function createGifRoute(opts: { apiKey?: string; fetchImpl: typeof fetch; now: () => number; trustProxy: boolean }): RequestHandler {
     const cache = new Map<string, { at: number; gifs: Gif[] }>();
     const limiter = new KeyedLimiter(IP_LIMITS.gifs[0], IP_LIMITS.gifs[1], opts.now);
 
@@ -34,7 +34,7 @@ export function createGifRoute(opts: { apiKey?: string; fetchImpl: typeof fetch;
             res.status(400).json({ error: 'query_too_long' });
             return;
         }
-        if (!limiter.take(clientIp(req.headers, req.socket.remoteAddress ?? 'unknown'))) {
+        if (!limiter.take(clientIp(req.headers, req.socket.remoteAddress ?? 'unknown', opts.trustProxy))) {
             res.status(429).json({ code: 'rate_limited' });
             return;
         }

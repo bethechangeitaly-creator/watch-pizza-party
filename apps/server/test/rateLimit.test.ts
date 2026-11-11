@@ -39,8 +39,12 @@ describe('isAllowedOrigin', () => {
 });
 
 describe('clientIp', () => {
-    it('uses the proxy-appended (last) forwarded entry', () => {
-        expect(clientIp({ 'x-forwarded-for': '6.6.6.6, 1.2.3.4' }, 'x')).toBe('1.2.3.4');
-        expect(clientIp({}, '9.9.9.9')).toBe('9.9.9.9');
+    it('behind a trusted proxy, uses the proxy-appended (last) forwarded entry', () => {
+        expect(clientIp({ 'x-forwarded-for': '6.6.6.6, 1.2.3.4' }, 'x', true)).toBe('1.2.3.4');
+        expect(clientIp({}, '9.9.9.9', true)).toBe('9.9.9.9');
+    });
+
+    it('without a trusted proxy, ignores the (forgeable) header', () => {
+        expect(clientIp({ 'x-forwarded-for': '1.2.3.4' }, '9.9.9.9', false)).toBe('9.9.9.9');
     });
 });

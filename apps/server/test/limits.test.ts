@@ -8,7 +8,7 @@ let host: TestClient;
 let viewer: TestClient;
 
 beforeEach(async () => {
-    s = await startTestServer({ now: fakeClock().now });
+    s = await startTestServer({ now: fakeClock().now, trustProxy: true });
     const room = (await postRoom(s.url, { protocolVersion: 2, username: 'Marco' })).body;
     host = await client();
     await join(host, room.roomId, { token: room.token });
@@ -43,6 +43,18 @@ describe('limits', () => {
         const r = await postRoom(s.url, { protocolVersion: 2 }, headers);
         expect(r.status).toBe(429);
         expect(r.body).toEqual({ code: 'rate_limited' });
+    });
+
+    it('forged X-Forwarded-For does not bypass limits without a trusted proxy', async () => {
+        const direct = await startTestServer({ now: fakeClock().now });
+        try {
+            for (let i = 0; i < 10; i++) {
+                expect((await postRoom(direct.url, { protocolVersion: 2 }, { 'x-forwarded-for': `10.0.0.${i}` })).status).toBe(200);
+            }
+            expect((await postRoom(direct.url, { protocolVersion: 2 }, { 'x-forwarded-for': '10.0.0.99' })).status).toBe(429);
+        } finally {
+            await direct.close();
+        }
     });
 
     it('CORS echoes extension origins only', async () => {

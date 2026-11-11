@@ -19,6 +19,7 @@ Keep the existing `watch-pizza-party` service running untouched — v1.2 users s
 4. Environment variables:
    - `GIPHY_API_KEY` = the new key
    - `ALLOWED_ORIGINS` = leave empty (extension origins are always allowed)
+   - `TRUST_PROXY` = `1` — Render's proxy sits in front of the server. Without it every user looks like the proxy's IP and shares one rate limit. After deploying, check with a couple of real users that "Too many parties started from this network" never appears; if it does, Render's proxy is not appending the client IP last and per-IP limits must be revisited.
 5. Health check path: `/health`.
 6. Deploy, then check:
 

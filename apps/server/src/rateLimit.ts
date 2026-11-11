@@ -70,8 +70,12 @@ export function isAllowedOrigin(origin: string | undefined, extra: readonly stri
     return extra.includes(origin);
 }
 
-/** The last X-Forwarded-For entry is the one our hosting proxy appended; earlier ones are client-controlled. */
-export function clientIp(headers: Record<string, string | string[] | undefined>, fallback: string): string {
+/**
+ * The client's IP for rate limiting. Behind a trusted proxy (TRUST_PROXY=1) the last X-Forwarded-For
+ * entry is the one the proxy appended; otherwise the header is client-controlled and ignored.
+ */
+export function clientIp(headers: Record<string, string | string[] | undefined>, fallback: string, trustProxy: boolean): string {
+    if (!trustProxy) return fallback;
     const raw = headers['x-forwarded-for'];
     const joined = Array.isArray(raw) ? raw.join(',') : raw ?? '';
     const entries = joined.split(',').map((e) => e.trim()).filter(Boolean);
