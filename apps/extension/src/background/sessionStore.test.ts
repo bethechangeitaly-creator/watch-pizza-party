@@ -1,21 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
     LEGACY_KEYS, SESSION_MAX_AGE_MS, clearSession, loadSession, migrateLegacyKeys, saveSession, sessionKey,
-    type KeyValueArea, type PersistedSession,
+    type PersistedSession,
 } from './sessionStore';
-
-export function memoryArea(): KeyValueArea & { data: Map<string, unknown> } {
-    const data = new Map<string, unknown>();
-    return {
-        data,
-        async get(key) {
-            const keys = Array.isArray(key) ? key : [key];
-            return Object.fromEntries(keys.filter((k) => data.has(k)).map((k) => [k, data.get(k)]));
-        },
-        async set(items) { for (const [k, v] of Object.entries(items)) data.set(k, v); },
-        async remove(keys) { for (const k of Array.isArray(keys) ? keys : [keys]) data.delete(k); },
-    };
-}
+import { memoryArea } from '../test/memoryArea';
 
 const k = sessionKey(false);
 const s: PersistedSession = { roomId: 'Jol4I72BE4', token: 'T'.repeat(24), username: 'Luca', mediaTabId: 7, savedAt: 1000 };
