@@ -12,7 +12,7 @@ import {
 } from '../lib/messages';
 import { isSupportedSite } from '@watch-party/shared';
 import { mediaKey, planViewerNavigation, shouldAcceptHostEvent } from './mediaTab';
-import { VolumeBoost } from './volume';
+import { VolumeBoost, chromeCaptureDeps } from './volume';
 import { probeContentAlive } from '../content/alive';
 import { ENTRIES_KEY, mergeEntries } from '../lib/timeline';
 import { ServerConnection } from './connection';
@@ -262,7 +262,14 @@ const controller = new SessionController({
     },
 });
 
-const volume = new VolumeBoost((gain) => controller.setVolumeGain(gain));
+const volume = new VolumeBoost(chromeCaptureDeps, (gain) => controller.setVolumeGain(gain));
+
+/** Arm volume boost while Chrome allows capturing this tab (the user just invoked us on it). */
+async function armVolumeIfAllowed(tabId: number | undefined): Promise<void> {
+    if (tabId === undefined) return;
+    const tab = await chrome.tabs.get(tabId).catch(() => null);
+    if (tab?.active) await volume.arm(tabId);
+}
 
 async function tabTitle(tabId: number): Promise<string> {
     try {
@@ -283,6 +290,7 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
             lastTimelineKey = null;
             await ensureContentScript(req.tabId);
             await controller.create(req.username, req.tabId, await tabTitle(req.tabId));
+            void armVolumeIfAllowed(controller.state().mediaTab?.tabId);
             return ok();
         case 'session.join': {
             lastTimelineKey = null;
@@ -296,6 +304,7 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
             }
             await ensureContentScript(tabId);
             await controller.join(req.roomId, req.username, tabId, await tabTitle(tabId));
+            void armVolumeIfAllowed(controller.state().mediaTab?.tabId);
             return ok();
         }
         case 'session.leave':
@@ -307,6 +316,7 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
             justBound = true;
             await ensureContentScript(req.tabId);
             await controller.useTab(req.tabId, await tabTitle(req.tabId));
+            void armVolumeIfAllowed(req.tabId);
             const timeline = controller.latestTimeline();
             if (timeline) await followTimeline(timeline, true);
             return ok();
@@ -343,13 +353,12 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
             controller.refresh();
             return ok();
         }
-        case 'volume.start':
-            if (req.tabId !== controller.state().mediaTab?.tabId) return fail("Volume boost isn't available on this tab.");
-            await volume.start(req.tabId, req.streamId, req.gain);
-            return ok();
-        case 'volume.setGain':
-            await volume.setGain(req.gain);
-            return ok();
+        case 'volume.set': {
+            const tabId = controller.state().mediaTab?.tabId;
+            if (tabId === undefined) return fail("There's no video tab for this party yet.");
+            const result = await volume.setGain(tabId, req.gain);
+            return result.ok ? ok() : fail('Chrome needs a click on the extension icon on the video tab.', result.reason);
+        }
         case 'volume.stop':
             await volume.stop();
             return ok();
@@ -361,7 +370,7 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
 const PANEL_REQUEST_TYPES = new Set<PanelRequest['type']>([
     'session.get', 'session.create', 'session.join', 'session.leave', 'session.useTab', 'chat.send',
     'sync.force', 'sync.request', 'sync.resyncMe', 'server.setUrl', 'panel.minimize',
-    'volume.start', 'volume.setGain', 'volume.stop',
+    'volume.set', 'volume.stop',
 ]);
 
 function isPanelRequest(raw: unknown): raw is PanelRequest {
@@ -394,6 +403,7 @@ chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== 'wpp-panel') return;
     openPanels += 1;
     controller.setPanelOpen(true);
+    void armVolumeIfAllowed(controller.state().mediaTab?.tabId);
     pushBubble();
     port.onDisconnect.addListener(() => {
         openPanels = Math.max(0, openPanels - 1);

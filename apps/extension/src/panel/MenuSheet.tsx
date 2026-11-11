@@ -6,7 +6,7 @@ import { inviteText, mailtoUrl, whatsappUrl } from './invite';
 import type { ThemePref } from './theme';
 import { Button } from './ui/Button';
 import { Sheet } from './ui/Sheet';
-import { VOLUME_MAX, VOLUME_MIN, getTabStreamId, startOrUpdateBoost } from './volume';
+import { VOLUME_MAX, VOLUME_MIN, setBoost } from './volume';
 
 const ASKS: Array<{ reason: SyncRequestReason; label: string }> = [
     { reason: 'pause', label: 'Pause' },
@@ -55,15 +55,8 @@ export function MenuSheet(props: {
     };
 
     const commitVolume = async () => {
-        const tabId = session.mediaTab?.tabId;
-        if (tabId === undefined) return;
-        const result = await startOrUpdateBoost({
-            percent,
-            mediaTabId: tabId,
-            capturing: session.volumeGain > 1,
-            send,
-            getStreamId: getTabStreamId,
-        });
+        if (!session.mediaTab) return;
+        const result = await setBoost(percent, send);
         setVolumeError(result.ok ? null : result.message);
     };
 

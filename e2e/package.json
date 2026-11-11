@@ -4,7 +4,8 @@
     "version": "2.0.0",
     "type": "module",
     "scripts": {
-        "e2e": "playwright test"
+        "e2e": "playwright test",
+        "join": "node tools/join-party.mjs"
     },
     "devDependencies": {
         "@playwright/test": "^1.55.0"

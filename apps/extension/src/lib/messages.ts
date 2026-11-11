@@ -42,8 +42,7 @@ export type PanelRequest =
     | { type: 'sync.resyncMe' }
     | { type: 'server.setUrl'; url: string }
     | { type: 'panel.minimize' }
-    | { type: 'volume.start'; tabId: number; streamId: string; gain: number }
-    | { type: 'volume.setGain'; gain: number }
+    | { type: 'volume.set'; gain: number }
     | { type: 'volume.stop' };
 
 export type PanelResponse = { ok: true; state: PublicSession } | { ok: false; error: string; code?: string };
