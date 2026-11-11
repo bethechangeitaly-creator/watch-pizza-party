@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PanelRequest, PanelResponse, PublicSession } from '../lib/messages';
 import { sessionWith } from '../test/sessions';
@@ -37,6 +37,20 @@ describe('Popup', () => {
         expect(screen.getByLabelText('Connected')).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Open Full Sidebar' }));
         expect(p.openPanel).toHaveBeenCalled();
+    });
+
+    it('has the Volume Boost slider like the sidebar', async () => {
+        const p = props({ session: sessionWith({ mediaTab: { tabId: 7, title: 'Song' } }), activeTab: { tabId: 7 } });
+        render(<Popup {...p} />);
+        const slider = screen.getByRole('slider', { name: 'Volume Boost' });
+        expect(slider).toHaveAttribute('max', '600');
+        fireEvent.change(slider, { target: { value: '450' } });
+        fireEvent.pointerUp(slider);
+        await vi.waitFor(() => expect(p.send).toHaveBeenCalledWith({ type: 'volume.set', gain: 4.5 }));
+        expect(screen.getByText('450%')).toBeInTheDocument();
+        fireEvent.doubleClick(slider);
+        await vi.waitFor(() => expect(p.send).toHaveBeenCalledWith({ type: 'volume.set', gain: 1 }));
+        expect(screen.getByText('100%')).toBeInTheDocument();
     });
 
     it('arms volume boost when opened on the party video tab', () => {

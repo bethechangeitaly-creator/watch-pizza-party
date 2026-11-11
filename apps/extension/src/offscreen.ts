@@ -11,6 +11,7 @@ let audioCtx: AudioContext | null = null;
 let gainNode: GainNode | null = null;
 let limiter: DynamicsCompressorNode | null = null;
 let analyser: AnalyserNode | null = null;
+let inputAnalyser: AnalyserNode | null = null;
 let sourceNode: MediaStreamAudioSourceNode | null = null;
 let mediaStream: MediaStream | null = null;
 let capturedTabId: number | null = null;
@@ -34,16 +35,17 @@ function stopCapture() {
     gainNode = null;
     limiter = null;
     analyser = null;
+    inputAnalyser = null;
     sourceNode = null;
     mediaStream = null;
     capturedTabId = null;
 }
 
 /** Output loudness (RMS, dBFS) right now — lets the test check the boost really makes it louder. */
-function outputLevelDb(): number | null {
-    if (!analyser) return null;
-    const samples = new Float32Array(analyser.fftSize);
-    analyser.getFloatTimeDomainData(samples);
+function levelDb(node: AnalyserNode | null): number | null {
+    if (!node) return null;
+    const samples = new Float32Array(node.fftSize);
+    node.getFloatTimeDomainData(samples);
     let sum = 0;
     for (const v of samples) sum += v * v;
     const rms = Math.sqrt(sum / samples.length);
@@ -80,6 +82,9 @@ async function startCapture(streamId: string, tabId: number | null, gain: number
         limiter.release.value = 0.1;
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 2048;
+        inputAnalyser = audioCtx.createAnalyser();
+        inputAnalyser.fftSize = 2048;
+        sourceNode.connect(inputAnalyser);
 
         sourceNode.connect(gainNode);
         gainNode.connect(limiter);
@@ -124,7 +129,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     if (message.type === 'OFFSCREEN_PING') {
-        sendResponse({ ok: true, capturing: Boolean(audioCtx && gainNode), tabId: capturedTabId, contextState: audioCtx?.state ?? null, gain: gainNode?.gain.value ?? null, levelDb: outputLevelDb(), sampleRate: audioCtx?.sampleRate ?? null });
+        sendResponse({ ok: true, capturing: Boolean(audioCtx && gainNode), tabId: capturedTabId, contextState: audioCtx?.state ?? null, gain: gainNode?.gain.value ?? null, levelDb: levelDb(analyser), inputDb: levelDb(inputAnalyser), sampleRate: audioCtx?.sampleRate ?? null });
         return true;
     }
 });

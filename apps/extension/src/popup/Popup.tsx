@@ -6,6 +6,7 @@ import { inviteText } from '../panel/invite';
 import { Avatar } from '../panel/ui/Avatar';
 import { Button } from '../panel/ui/Button';
 import { IconButton } from '../panel/ui/IconButton';
+import { VolumeSlider } from '../panel/VolumeSlider';
 
 export function Popup(props: {
     session: PublicSession | null;
@@ -92,6 +93,12 @@ export function Popup(props: {
                     <dd className="text-body font-semibold">{count === 1 ? '1 person' : `${count} people`}</dd>
                 </div>
             </dl>
+            {session.mediaTab && (
+                <section className="flex flex-col gap-1.5 rounded-card bg-surface px-3 py-2.5 shadow-[0_1px_3px_rgb(120_60_20/0.08)] dark:shadow-none">
+                    <p className="text-meta font-bold text-muted">🔊 Volume Boost</p>
+                    <VolumeSlider session={session} send={send} showValue />
+                </section>
+            )}
             <Button variant="primary" className="h-11" onClick={props.openPanel}>Open Full Sidebar</Button>
         </main>
     );

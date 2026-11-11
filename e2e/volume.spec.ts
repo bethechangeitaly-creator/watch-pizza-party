@@ -21,24 +21,26 @@ test('volume boost captures the video tab and changes the gain', async () => {
         expect(ping.gain).toBe(2);
         expect(ping.sampleRate).toBe(48000);
 
-        // The boost must really be louder: average output level at 100 % vs 400 %.
-        const level = async () => {
-            const samples: number[] = [];
+        // The boost must really be louder: output vs input level, measured at the same moment.
+        const boostDb = async () => {
+            const diffs: number[] = [];
             for (let i = 0; i < 20; i++) {
-                const p = (await panelRequest(host, { target: 'offscreen', type: 'OFFSCREEN_PING' })) as { levelDb: number | null };
-                if (typeof p.levelDb === 'number' && Number.isFinite(p.levelDb)) samples.push(p.levelDb);
+                const p = (await panelRequest(host, { target: 'offscreen', type: 'OFFSCREEN_PING' })) as { levelDb: number | null; inputDb: number | null };
+                if (typeof p.levelDb === 'number' && typeof p.inputDb === 'number' && p.inputDb > -60) diffs.push(p.levelDb - p.inputDb);
                 await host.page.waitForTimeout(100);
             }
-            return samples.reduce((a, b) => a + b, 0) / Math.max(1, samples.length);
+            expect(diffs.length, 'there is real audio to measure').toBeGreaterThan(5);
+            return diffs.reduce((a, b) => a + b, 0) / diffs.length;
         };
-        await panelRequest(host, { type: 'volume.set', gain: 1 });
-        await host.page.waitForTimeout(5000); // the film's first seconds are almost silent
-        const normal = await level();
-        await panelRequest(host, { type: 'volume.set', gain: 4 });
-        const boosted = await level();
-        console.log(`VOLUME 100% ${normal.toFixed(1)} dB → 400% ${boosted.toFixed(1)} dB`);
-        expect(normal).toBeLessThan(-10); // there is real audio, not silence measured as 0
-        expect(boosted - normal).toBeGreaterThan(6);
+        const results: Record<string, number> = {};
+        for (const gain of [1, 2, 4, 6]) {
+            await panelRequest(host, { type: 'volume.set', gain });
+            await host.page.waitForTimeout(300);
+            results[`${gain * 100}%`] = Math.round((await boostDb()) * 10) / 10;
+        }
+        console.log('BOOST dB', JSON.stringify(results));
+        expect(Math.abs(results['100%'])).toBeLessThan(1); // 100 % leaves the sound unchanged
+        expect(results['600%']).toBeGreaterThan(12);
     } finally {
         await host.context.close();
     }

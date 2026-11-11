@@ -15,7 +15,7 @@ import type { ThemePref } from './theme';
 import { Avatar } from './ui/Avatar';
 import { Button } from './ui/Button';
 import { Section } from './ui/Section';
-import { VOLUME_MAX, VOLUME_MIN, setBoost } from './volume';
+import { VolumeSlider } from './VolumeSlider';
 
 const TONE: Record<StatusLine['tone'], string> = {
     ok: 'bg-ok text-ok-fg',
@@ -84,8 +84,6 @@ export function Room(props: RoomProps) {
     const [aboutOpen, setAboutOpen] = useState(false);
     const [confirm, setConfirm] = useState<'leave' | 'close' | null>(null);
     const [copied, setCopied] = useState(false);
-    const [percent, setPercent] = useState(Math.round(session.volumeGain * 100));
-    const [volumeError, setVolumeError] = useState<string | null>(null);
     const room = session.room;
     if (!room) return null;
 
@@ -102,11 +100,6 @@ export function Room(props: RoomProps) {
         } catch {
             // Clipboard blocked.
         }
-    };
-    const commitVolume = async (value: number) => {
-        if (!session.mediaTab) return;
-        const result = await setBoost(value, send);
-        setVolumeError(result.ok ? null : result.message);
     };
     const donate = () => window.open(DONATE_URL, '_blank', 'noopener');
     const closeAll = async () => {
@@ -240,28 +233,8 @@ export function Room(props: RoomProps) {
                     </ul>
                 </Section>
 
-                <Section title="Volume Boost" badge={`${percent}%`} open={sections.volume} onToggle={() => props.onToggleSection('volume')}>
-                    <input
-                        type="range"
-                        aria-label="Volume Boost"
-                        min={VOLUME_MIN}
-                        max={VOLUME_MAX}
-                        step={5}
-                        value={percent}
-                        disabled={!session.mediaTab}
-                        onChange={(e) => setPercent(Number(e.target.value))}
-                        onPointerUp={() => void commitVolume(percent)}
-                        onKeyUp={() => void commitVolume(percent)}
-                        onDoubleClick={() => { setPercent(100); void commitVolume(100); }}
-                        className="w-full accent-accent"
-                    />
-                    <p className="text-meta text-muted">Double-click to reset to 100%. Local setting only.</p>
-                    {(volumeError || !session.volumeReady) && (
-                        <p className="mt-1.5 rounded-control bg-warn px-2.5 py-1.5 text-meta text-warn-fg">
-                            {volumeError ?? "Click the Watch Pizza Party icon in the toolbar while you're on the video to turn on Volume Boost."}
-                        </p>
-                    )}
-                    {!volumeError && session.volumeReady && <p className="mt-1.5 text-meta font-bold text-ok-fg">✓ Boost is ready.</p>}
+                <Section title="Volume Boost" badge={`${Math.round(session.volumeGain * 100)}%`} open={sections.volume} onToggle={() => props.onToggleSection('volume')}>
+                    <VolumeSlider session={session} send={send} />
                 </Section>
 
                 {props.donateDue && (
