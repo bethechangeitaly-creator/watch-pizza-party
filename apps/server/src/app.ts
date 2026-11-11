@@ -5,6 +5,7 @@ import { Server } from 'socket.io';
 import { CreateRoomRequestSchema, PROTOCOL_VERSION, UPDATE_REQUIRED_MESSAGE } from '@watch-party/shared';
 import { RoomStore } from './roomStore';
 import { setupSocketHandlers } from './socketHandlers';
+import { createGifRoute } from './gifs';
 import { IP_LIMITS, KeyedLimiter, clientIp, isAllowedOrigin } from './rateLimit';
 
 export type AppOptions = {
@@ -30,6 +31,7 @@ export function createApp(opts: AppOptions = {}) {
     app.get('/health', (_req, res) => {
         res.json({ ok: true });
     });
+    app.get('/gifs', createGifRoute({ apiKey: opts.giphyApiKey, fetchImpl: opts.fetchImpl ?? fetch, now }));
 
     const httpServer: HttpServer = createServer(app);
     const io = new Server(httpServer, {
