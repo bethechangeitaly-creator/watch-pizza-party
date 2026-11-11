@@ -3,6 +3,7 @@ import {
     parseContentMessage,
     type BackgroundEvent,
     type BackgroundToContent,
+    type BubbleState,
     type ContentToBackground,
     type PanelRequest,
     type PanelResponse,
@@ -18,6 +19,7 @@ import { SERVER_URL_KEY, loadServerUrl, normalizeServerUrl } from './serverUrl';
 
 const storage = chrome.storage.local as unknown as KeyValueArea;
 let serverUrl = '';
+let openPanels = 0;
 
 function broadcast(event: BackgroundEvent): void {
     chrome.runtime.sendMessage(event).catch(() => {
@@ -87,7 +89,46 @@ function handleTimeline(timeline: Timeline, force: boolean): void {
     void followTimeline(timeline, force);
 }
 function handleEntries(_entries: TimelineEntry[], _replace: boolean): void {}
-function handleHostRequest(_reason: SyncRequestReason): void {}
+
+// ── Floating bubble (shown in the media tab while the panel is closed) ────────
+
+const REQUEST_BADGE_MS = 10_000;
+const dismissedBubbleTabs = new Set<number>();
+let lastRequest: { reason: SyncRequestReason; until: number } | null = null;
+let bubbleSent: { tabId: number; json: string } | null = null;
+
+function bubbleState(state: PublicSession): BubbleState {
+    const inParty = state.status === 'joined' || state.status === 'reconnecting';
+    const tabId = state.mediaTab?.tabId;
+    return {
+        visible: inParty && openPanels === 0 && tabId !== undefined && !dismissedBubbleTabs.has(tabId),
+        participants: state.room?.participants.length ?? 0,
+        unread: state.unread,
+        connected: state.status === 'joined',
+        request: lastRequest && lastRequest.until > Date.now() ? lastRequest.reason : null,
+    };
+}
+
+function pushBubble(): void {
+    const state = controller.state();
+    const tabId = state.mediaTab?.tabId ?? null;
+    if (bubbleSent && bubbleSent.tabId !== tabId) {
+        sendToTab(bubbleSent.tabId, { type: 'bg.bubble', bubble: { ...bubbleState(state), visible: false } });
+        bubbleSent = null;
+    }
+    if (tabId === null) return;
+    const bubble = bubbleState(state);
+    const json = JSON.stringify(bubble);
+    if (bubbleSent?.json === json) return;
+    bubbleSent = { tabId, json };
+    sendToTab(tabId, { type: 'bg.bubble', bubble });
+}
+
+function handleHostRequest(reason: SyncRequestReason): void {
+    lastRequest = { reason, until: Date.now() + REQUEST_BADGE_MS };
+    pushBubble();
+    setTimeout(pushBubble, REQUEST_BADGE_MS + 50);
+}
 function handleClock(offsetMs: number): void {
     if (activeContent?.role === 'viewer') sendToTab(activeContent.tabId, { type: 'bg.clock', clockOffsetMs: offsetMs });
 }
@@ -113,6 +154,18 @@ function handleContentMessage(message: ContentToBackground, tabId: number): void
     switch (message.type) {
         case 'content.hello':
             if (fromMediaTab && activeContent?.tabId === tabId) activateTab(tabId, activeContent.role);
+            if (fromMediaTab) {
+                bubbleSent = null; // fresh page: resend the bubble
+                pushBubble();
+            }
+            return;
+        case 'content.openPanel':
+            dismissedBubbleTabs.delete(tabId);
+            chrome.sidePanel.open({ tabId }).catch(() => {});
+            return;
+        case 'content.dismissBubble':
+            dismissedBubbleTabs.add(tabId);
+            pushBubble();
             return;
         case 'content.hostEvent': {
             if (!fromMediaTab || !state.isHost) return;
@@ -159,6 +212,7 @@ const controller = new SessionController({
     emit: (state) => {
         broadcast({ type: 'bg.session', state });
         syncContentActivation(state);
+        pushBubble();
     },
     onTimeline: (t, force) => handleTimeline(t, force),
     onEntries: (entries, replace) => handleEntries(entries, replace),
@@ -200,6 +254,12 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
             await controller.useTab(req.tabId, await tabTitle(req.tabId));
             const timeline = controller.latestTimeline();
             if (timeline) await followTimeline(timeline, true);
+            return ok();
+        }
+        case 'panel.minimize': {
+            const tabId = controller.state().mediaTab?.tabId;
+            if (tabId !== undefined) dismissedBubbleTabs.delete(tabId);
+            pushBubble(); // The panel closes itself; the port disconnect then shows the bubble.
             return ok();
         }
         case 'sync.resyncMe': {
@@ -259,18 +319,21 @@ chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+    dismissedBubbleTabs.delete(tabId);
+    if (bubbleSent?.tabId === tabId) bubbleSent = null;
     if (activeContent?.tabId === tabId) activeContent = null;
     if (controller.state().mediaTab?.tabId === tabId) controller.clearMediaTab();
 });
 
-let openPanels = 0;
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== 'wpp-panel') return;
     openPanels += 1;
     controller.setPanelOpen(true);
+    pushBubble();
     port.onDisconnect.addListener(() => {
         openPanels = Math.max(0, openPanels - 1);
         if (openPanels === 0) controller.setPanelOpen(false);
+        pushBubble();
     });
 });
 

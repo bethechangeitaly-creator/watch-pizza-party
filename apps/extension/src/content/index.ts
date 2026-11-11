@@ -1,5 +1,6 @@
 import type { BackgroundToContent, ContentToBackground } from '../lib/messages';
 import { adapterFor } from './adapters';
+import { createBubble } from './bubble';
 import { HostReporter } from './hostReporter';
 import { ViewerFollower } from './viewerFollower';
 
@@ -13,6 +14,7 @@ const TICK_MS = 250;
     let timer: ReturnType<typeof setInterval> | null = null;
     let reporter: HostReporter | null = null;
     let follower: ViewerFollower | null = null;
+    let bubble: ReturnType<typeof createBubble> | null = null;
 
     const send = (message: ContentToBackground) => {
         try {
@@ -58,6 +60,19 @@ const TICK_MS = 250;
                 break;
             case 'bg.clock':
                 follower?.setClock(message.clockOffsetMs);
+                break;
+            case 'bg.bubble':
+                if (!bubble && !message.bubble.visible) break;
+                bubble ??= createBubble(
+                    document,
+                    {
+                        onOpen: () => send({ type: 'content.openPanel' }),
+                        onDismiss: () => send({ type: 'content.dismissBubble' }),
+                    },
+                    localStorage,
+                    chrome.runtime.getURL('icon32.png'),
+                );
+                bubble.render(message.bubble);
                 break;
             default:
                 break;
