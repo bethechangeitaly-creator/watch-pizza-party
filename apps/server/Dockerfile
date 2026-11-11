@@ -1,16 +1,20 @@
-FROM node:20-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+FROM node:24-slim
 
-FROM base AS build
-COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build --filter=@watch-party/server
 
-FROM base
-COPY --from=build /usr/src/app /usr/src/app
-WORKDIR /usr/src/app/apps/server
+# Workspace manifests first so the dependency layer is cached between code changes.
+COPY package.json package-lock.json ./
+COPY packages/shared/package.json packages/shared/
+COPY apps/server/package.json apps/server/
+COPY apps/extension/package.json apps/extension/
+
+RUN npm ci --workspace=@watch-party/shared --workspace=@watch-party/server --include-workspace-root
+
+COPY packages/shared packages/shared
+COPY apps/server apps/server
+RUN npm run build:server
+
+ENV NODE_ENV=production
+ENV PORT=3001
 EXPOSE 3001
-CMD [ "pnpm", "start" ]
+CMD ["node", "apps/server/dist/index.js"]

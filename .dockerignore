@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+apps/extension/src
+apps/extension/public
+e2e
+watch-pizza-party-*
+WatchParty_Graphic
+Screenshot*
+*.zip
+.git
+.superpowers
+docs
