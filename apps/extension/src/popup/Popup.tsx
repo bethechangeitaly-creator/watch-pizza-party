@@ -32,7 +32,7 @@ export function Popup(props: {
             </span>
             <div className="min-w-0 flex-1">
                 <p className="text-title font-bold">Watch Pizza Party</p>
-                <p className="text-meta text-muted">Watch YouTube &amp; Netflix together</p>
+                <p className="text-meta text-muted">Sync &amp; Watch Together</p>
             </div>
         </header>
     );
@@ -41,7 +41,8 @@ export function Popup(props: {
         return (
             <main className="flex w-[300px] flex-col gap-4 bg-bg p-4 text-text">
                 {header}
-                <Button variant="primary" className="h-11" onClick={props.openPanel}>Open Watch Pizza Party</Button>
+                <p className="rounded-card bg-surface px-3 py-2 text-body text-muted">Open the sidebar to create or join a room</p>
+                <Button variant="primary" className="h-11" onClick={props.openPanel}>Open Full Sidebar</Button>
             </main>
         );
     }
@@ -81,7 +82,7 @@ export function Popup(props: {
                             title={connected ? 'Connected' : 'Not connected'}
                             className={`h-2 w-2 rounded-full ${connected ? 'bg-ok-fg' : 'bg-muted'}`}
                         />
-                        <IconButton label="Copy invite" className="ml-auto" onClick={() => void copy()}>
+                        <IconButton label="Copy invite text" className="ml-auto" onClick={() => void copy()}>
                             {copied ? <Check size={15} /> : <Copy size={15} />}
                         </IconButton>
                     </dd>
@@ -91,7 +92,7 @@ export function Popup(props: {
                     <dd className="text-body font-semibold">{count === 1 ? '1 person' : `${count} people`}</dd>
                 </div>
             </dl>
-            <Button variant="primary" className="h-11" onClick={props.openPanel}>Open full sidebar</Button>
+            <Button variant="primary" className="h-11" onClick={props.openPanel}>Open Full Sidebar</Button>
         </main>
     );
 }

@@ -28,6 +28,7 @@ export function sessionWith(o: {
         serverUrl: 'https://s',
         error: null,
         volumeGain: 1,
+        volumeReady: false,
         unread: 0,
     };
 }

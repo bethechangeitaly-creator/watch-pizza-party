@@ -11,7 +11,7 @@ import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
 import '../index.css';
 
-applyTheme('system');
+applyTheme('dark');
 void loadThemePref().then(applyTheme);
 
 // The popup never opens a 'wpp-panel' port: it must not count as an open panel.

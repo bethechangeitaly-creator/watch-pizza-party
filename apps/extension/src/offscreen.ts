@@ -12,6 +12,7 @@ let gainNode: GainNode | null = null;
 let limiter: DynamicsCompressorNode | null = null;
 let sourceNode: MediaStreamAudioSourceNode | null = null;
 let mediaStream: MediaStream | null = null;
+let capturedTabId: number | null = null;
 
 function stopCapture() {
     try { sourceNode?.disconnect(); } catch { /* ignore */ }
@@ -32,9 +33,10 @@ function stopCapture() {
     limiter = null;
     sourceNode = null;
     mediaStream = null;
+    capturedTabId = null;
 }
 
-async function startCapture(streamId: string, gain: number) {
+async function startCapture(streamId: string, tabId: number | null, gain: number): Promise<{ ok: boolean; error?: string }> {
     // Clean up any existing capture first
     stopCapture();
 
@@ -65,10 +67,15 @@ async function startCapture(streamId: string, gain: number) {
         gainNode.connect(limiter);
         limiter.connect(audioCtx.destination);
 
+        // Offscreen documents may start their AudioContext suspended; without this the tab goes silent.
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        capturedTabId = tabId;
         console.log('[WatchParty Offscreen] Audio capture started, gain =', gain);
+        return { ok: true };
     } catch (err) {
         console.error('[WatchParty Offscreen] Failed to start audio capture:', err);
         stopCapture();
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
 }
 
@@ -76,8 +83,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.target !== 'offscreen') return;
 
     if (message.type === 'OFFSCREEN_START_CAPTURE') {
-        void startCapture(message.streamId, message.gain);
-        sendResponse({ ok: true });
+        void startCapture(message.streamId, typeof message.tabId === 'number' ? message.tabId : null, message.gain).then(sendResponse);
         return true;
     }
 
@@ -99,7 +105,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     if (message.type === 'OFFSCREEN_PING') {
-        sendResponse({ ok: true, capturing: Boolean(audioCtx && gainNode) });
+        sendResponse({ ok: true, capturing: Boolean(audioCtx && gainNode), tabId: capturedTabId });
         return true;
     }
 });

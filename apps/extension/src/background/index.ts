@@ -262,7 +262,7 @@ const controller = new SessionController({
     },
 });
 
-const volume = new VolumeBoost(chromeCaptureDeps, (gain) => controller.setVolumeGain(gain));
+const volume = new VolumeBoost(chromeCaptureDeps, (gain, readyTabId) => controller.setVolumeState(gain, readyTabId));
 
 /** Arm volume boost while Chrome allows capturing this tab (the user just invoked us on it). */
 async function armVolumeIfAllowed(tabId: number | undefined): Promise<void> {

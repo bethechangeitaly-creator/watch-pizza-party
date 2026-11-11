@@ -27,6 +27,8 @@ export type PublicSession = {
     serverUrl: string;
     error: { code?: string; message: string } | null;
     volumeGain: number;
+    /** Volume boost is capturing the party's video tab, so the slider works without another click. */
+    volumeReady: boolean;
     unread: number;
 };
 

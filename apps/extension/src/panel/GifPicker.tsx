@@ -30,14 +30,14 @@ export function GifPicker({ serverUrl, onPick }: { serverUrl: string; onPick: (u
         <div className="flex flex-col gap-2 rounded-control bg-surface-2 p-2">
             <input
                 aria-label="Search GIFs"
-                placeholder="Search GIFs"
+                placeholder="Search GIF (e.g. happy dance)"
                 value={query}
                 maxLength={50}
                 onChange={(e) => setQuery(e.target.value)}
                 className="h-8 rounded-control bg-surface px-3 text-body"
             />
             {state === 'unavailable' && <p className="text-meta text-muted">GIFs aren't available right now.</p>}
-            {state === 'ready' && gifs.length === 0 && <p className="text-meta text-muted">No GIFs found.</p>}
+            {state === 'ready' && gifs.length === 0 && <p className="text-meta text-muted">No GIF found. Try another keyword.</p>}
             <div className="grid max-h-48 grid-cols-3 gap-1 overflow-y-auto">
                 {gifs.map((gif) => (
                     <button key={gif.id} type="button" aria-label="Send GIF" onClick={() => onPick(gif.url)} className="overflow-hidden rounded-control">

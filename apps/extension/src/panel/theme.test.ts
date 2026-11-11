@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { resolveTheme } from './theme';
+import { parseThemePref } from './theme';
 
-describe('resolveTheme', () => {
-    it('follows the system unless overridden', () => {
-        expect(resolveTheme('system', true)).toBe('dark');
-        expect(resolveTheme('system', false)).toBe('light');
-        expect(resolveTheme('light', true)).toBe('light');
-        expect(resolveTheme('dark', false)).toBe('dark');
+describe('parseThemePref', () => {
+    it('defaults to night and only knows light and dark', () => {
+        expect(parseThemePref(undefined)).toBe('dark');
+        expect(parseThemePref('system')).toBe('dark');
+        expect(parseThemePref('light')).toBe('light');
+        expect(parseThemePref('dark')).toBe('dark');
     });
 });

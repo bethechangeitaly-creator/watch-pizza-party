@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { VolumeBoost, type CaptureDeps } from './volume';
 
-function setup(grantedTabs: number[] = [7]) {
+function setup(grantedTabs: number[] = [7], offscreen: { startOk?: boolean; capturingTabId?: number | null } = {}) {
     const sent: Array<Record<string, unknown>> = [];
     const deps: CaptureDeps = {
         getStreamId: vi.fn(async (tabId: number) => {
@@ -10,18 +10,48 @@ function setup(grantedTabs: number[] = [7]) {
         }),
         ensureOffscreen: vi.fn(async () => {}),
         closeOffscreen: vi.fn(async () => {}),
-        toOffscreen: vi.fn(async (m: Record<string, unknown>) => { sent.push(m); }),
+        toOffscreen: vi.fn(async (m: Record<string, unknown>) => {
+            if (m.type === 'OFFSCREEN_PING') return { ok: true, capturing: offscreen.capturingTabId != null, tabId: offscreen.capturingTabId ?? null };
+            sent.push(m);
+            if (m.type === 'OFFSCREEN_START_CAPTURE') return offscreen.startOk === false ? { ok: false, error: 'NotAllowedError' } : { ok: true };
+            return { ok: true };
+        }),
     };
     const gains: number[] = [];
-    return { deps, sent, gains, boost: new VolumeBoost(deps, (g) => gains.push(g)) };
+    const readies: Array<number | null> = [];
+    return { deps, sent, gains, readies, boost: new VolumeBoost(deps, (g, ready) => { gains.push(g); readies.push(ready); }) };
 }
 
 describe('VolumeBoost', () => {
     it('arms a passthrough capture while Chrome allows it (panel opened on the video tab)', async () => {
         const { boost, sent } = setup();
         expect(await boost.arm(7)).toBe(true);
-        expect(sent).toEqual([{ type: 'OFFSCREEN_START_CAPTURE', streamId: 'stream-7', gain: 1 }]);
+        expect(sent).toEqual([{ type: 'OFFSCREEN_START_CAPTURE', streamId: 'stream-7', tabId: 7, gain: 1 }]);
         expect(boost.capturingTabId).toBe(7);
+    });
+
+    it('reports failure when the offscreen document could not start the capture', async () => {
+        const { boost, deps } = setup([7], { startOk: false });
+        expect(await boost.arm(7)).toBe(false);
+        expect(boost.capturingTabId).toBeNull();
+        expect(deps.closeOffscreen).toHaveBeenCalled();
+        expect(await boost.setGain(7, 2)).toEqual({ ok: false, reason: 'needs_icon_click' });
+    });
+
+    it('picks up a capture that survived a service-worker restart instead of asking for a click', async () => {
+        const { boost, sent, deps } = setup([], { capturingTabId: 7 });
+        expect(await boost.setGain(7, 2)).toEqual({ ok: true });
+        expect(deps.getStreamId).not.toHaveBeenCalled();
+        expect(sent.at(-1)).toEqual({ type: 'OFFSCREEN_SET_GAIN', gain: 2 });
+        expect(boost.capturingTabId).toBe(7);
+    });
+
+    it('tells the panel when boost is ready', async () => {
+        const { boost, readies } = setup();
+        await boost.arm(7);
+        expect(readies.at(-1)).toBe(7);
+        await boost.stop();
+        expect(readies.at(-1)).toBeNull();
     });
 
     it('arming without Chrome\'s permission fails quietly', async () => {
@@ -43,7 +73,7 @@ describe('VolumeBoost', () => {
     it('not armed yet: tries to start, and says what to do if Chrome refuses', async () => {
         const ok = setup();
         expect(await ok.boost.setGain(7, 1.5)).toEqual({ ok: true });
-        expect(ok.sent).toEqual([{ type: 'OFFSCREEN_START_CAPTURE', streamId: 'stream-7', gain: 1.5 }]);
+        expect(ok.sent).toEqual([{ type: 'OFFSCREEN_START_CAPTURE', streamId: 'stream-7', tabId: 7, gain: 1.5 }]);
         const refused = setup([]);
         expect(await refused.boost.setGain(7, 1.5)).toEqual({ ok: false, reason: 'needs_icon_click' });
     });

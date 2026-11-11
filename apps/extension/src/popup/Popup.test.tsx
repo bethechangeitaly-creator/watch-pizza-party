@@ -8,7 +8,7 @@ import { Popup } from './Popup';
 
 const idle: PublicSession = {
     status: 'idle', roomId: null, me: null, isHost: false, room: null, mediaTab: null, mySync: null,
-    serverUrl: 'https://s', error: null, volumeGain: 1, unread: 0,
+    serverUrl: 'https://s', error: null, volumeGain: 1, volumeReady: false, unread: 0,
 };
 
 function props(over: Partial<Parameters<typeof Popup>[0]> = {}) {
@@ -21,8 +21,8 @@ describe('Popup', () => {
         const user = userEvent.setup();
         const p = props();
         render(<Popup {...p} />);
-        expect(screen.getByText('Watch YouTube & Netflix together')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Open Watch Pizza Party' }));
+        expect(screen.getByText('Sync & Watch Together')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Open Full Sidebar' }));
         expect(p.openPanel).toHaveBeenCalled();
     });
 
@@ -35,7 +35,7 @@ describe('Popup', () => {
         expect(screen.getByText('Jol4I72BE4')).toBeInTheDocument();
         expect(screen.getByText('2 people')).toBeInTheDocument();
         expect(screen.getByLabelText('Connected')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Open full sidebar' }));
+        await user.click(screen.getByRole('button', { name: 'Open Full Sidebar' }));
         expect(p.openPanel).toHaveBeenCalled();
     });
 

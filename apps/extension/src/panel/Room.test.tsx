@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PanelRequest, PanelResponse } from '../lib/messages';
 import { sessionWith } from '../test/sessions';
@@ -13,8 +13,9 @@ function props(over: Partial<Parameters<typeof Room>[0]> = {}) {
     const send = vi.fn(async (_r: PanelRequest): Promise<PanelResponse> => ({ ok: true, state: session }));
     return {
         session, entries: [], send, activeTab: { tabId: 1, url: 'https://example.com/' }, extensionId: 'abc', version: '2.0.0',
-        themePref: 'system' as const, onThemeChange: vi.fn(), soundsEnabled: false, onSoundsChange: vi.fn(), gifsAvailable: false,
+        themePref: 'dark' as const, onThemeChange: vi.fn(), soundsEnabled: false, onSoundsChange: vi.fn(), gifsAvailable: false,
         sections: defaultSections(session.isHost ? 'host' : 'viewer') as SectionState, onToggleSection: vi.fn(),
+        donateDue: false, onDonateDismiss: vi.fn(),
         ...over,
     };
 }
@@ -23,20 +24,32 @@ const host = () => sessionWith({ isHost: true, playing: true });
 describe('Room', () => {
     it('host sees Invite and Sync open, People and Volume folded', () => {
         render(<Room {...props({ session: host() })} />);
-        for (const name of ['Copy invite', 'WhatsApp', 'Email', '🔄 Sync everyone', '🍕 Donate a slice']) {
+        for (const name of ['Copy invite text', 'Share via WhatsApp', 'Share via Email', '🔄 Sync Now']) {
             expect(screen.getByRole('button', { name })).toBeInTheDocument();
         }
-        expect(screen.queryByRole('slider', { name: 'Volume boost' })).toBeNull();
-        expect(screen.getByRole('button', { name: /People/ })).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.queryByRole('button', { name: '🍕 Donate a Slice of Pizza' })).toBeNull();
+        expect(screen.queryByRole('slider', { name: 'Volume Boost' })).toBeNull();
+        expect(screen.getByRole('button', { name: /Participants/ })).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it('viewer sees Resync me and the ask-the-host buttons', async () => {
+    it('Sync Now syncs everyone for the host and resyncs a viewer', async () => {
+        const user = userEvent.setup();
+        const h = props({ session: host() });
+        const { unmount } = render(<Room {...h} />);
+        await user.click(screen.getByRole('button', { name: '🔄 Sync Now' }));
+        expect(h.send).toHaveBeenCalledWith({ type: 'sync.force' });
+        unmount();
+        const v = props();
+        render(<Room {...v} />);
+        await user.click(screen.getByRole('button', { name: '🔄 Sync Now' }));
+        expect(v.send).toHaveBeenCalledWith({ type: 'sync.resyncMe' });
+    });
+
+    it('viewer can ask the host', async () => {
         const user = userEvent.setup();
         const p = props();
         render(<Room {...p} />);
-        expect(screen.getByRole('button', { name: '🔄 Resync me' })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: '🔄 Sync everyone' })).toBeNull();
-        await user.click(screen.getByRole('button', { name: 'Ask the host to pause' }));
+        await user.click(screen.getByRole('button', { name: 'Ask host: pause' }));
         expect(p.send).toHaveBeenCalledWith({ type: 'sync.request', reason: 'pause' });
     });
 
@@ -44,7 +57,7 @@ describe('Room', () => {
         const user = userEvent.setup();
         const p = props();
         render(<Room {...p} />);
-        await user.click(screen.getByRole('button', { name: /Invite friends/ }));
+        await user.click(screen.getByRole('button', { name: /Invite to Join/ }));
         expect(p.onToggleSection).toHaveBeenCalledWith('invite');
     });
 
@@ -52,24 +65,21 @@ describe('Room', () => {
         const user = userEvent.setup();
         const p = props();
         render(<Room {...p} />);
-        await user.click(screen.getByRole('button', { name: 'Leave party' }));
+        await user.click(screen.getByRole('button', { name: 'Leave room' }));
         expect(screen.getByText('Leave the party?')).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Leave' }));
         expect(p.send).toHaveBeenCalledWith({ type: 'session.leave' });
     });
 
-    it('theme button cycles system → light → dark → system', async () => {
+    it('theme button switches between Night and Light', async () => {
         const user = userEvent.setup();
         const p = props();
         const { rerender } = render(<Room {...p} />);
-        await user.click(screen.getByRole('button', { name: 'Theme: System' }));
+        await user.click(screen.getByRole('button', { name: 'Switch to light mode (work / YouTube)' }));
         expect(p.onThemeChange).toHaveBeenLastCalledWith('light');
         rerender(<Room {...p} themePref="light" />);
-        await user.click(screen.getByRole('button', { name: 'Theme: Light' }));
+        await user.click(screen.getByRole('button', { name: 'Switch to dark mode (cinema / Netflix)' }));
         expect(p.onThemeChange).toHaveBeenLastCalledWith('dark');
-        rerender(<Room {...p} themePref="dark" />);
-        await user.click(screen.getByRole('button', { name: 'Theme: Night' }));
-        expect(p.onThemeChange).toHaveBeenLastCalledWith('system');
     });
 
     it('shows you with your role, and a connection dot', () => {
@@ -83,7 +93,7 @@ describe('Room', () => {
     it('people section lists names with You and Host', () => {
         const p = props();
         render(<Room {...p} sections={{ ...p.sections, people: true }} />);
-        const people = screen.getByRole('list', { name: 'People' });
+        const people = screen.getByRole('list', { name: 'Participants' });
         expect(people).toHaveTextContent('Luca');
         expect(people).toHaveTextContent('You');
         expect(people).toHaveTextContent('Marco');
@@ -93,7 +103,7 @@ describe('Room', () => {
     it('volume slider double-click resets to 100%', () => {
         const p = props();
         render(<Room {...p} sections={{ ...p.sections, volume: true }} />);
-        fireEvent.doubleClick(screen.getByRole('slider', { name: 'Volume boost' }));
+        fireEvent.doubleClick(screen.getByRole('slider', { name: 'Volume Boost' }));
         expect(p.send).toHaveBeenCalledWith({ type: 'volume.set', gain: 1 });
     });
 
@@ -105,12 +115,45 @@ describe('Room', () => {
         expect(screen.getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
     });
 
-    it('donate opens the PayPal page', async () => {
+    it('the donation card shows only when due, opens PayPal and can be put off', async () => {
         const user = userEvent.setup();
         const open = vi.spyOn(window, 'open').mockReturnValue(null);
-        render(<Room {...props()} />);
-        await user.click(screen.getByRole('button', { name: '🍕 Donate a slice' }));
+        const p = props({ donateDue: true });
+        render(<Room {...p} />);
+        expect(screen.getByText('Support Our Free Server')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: '🍕 Donate a Slice of Pizza' }));
         expect(open).toHaveBeenCalledWith(DONATE_URL, '_blank', 'noopener');
+        await user.click(screen.getByRole('button', { name: 'Not now' }));
+        expect(p.onDonateDismiss).toHaveBeenCalled();
+    });
+
+    it('volume explains the toolbar click until boost is ready', () => {
+        const p = props();
+        const { rerender } = render(<Room {...p} sections={{ ...p.sections, volume: true }} />);
+        expect(screen.getByText(/click the Watch Pizza Party icon/i)).toBeInTheDocument();
+        rerender(<Room {...p} session={{ ...p.session, volumeReady: true }} sections={{ ...p.sections, volume: true }} />);
+        expect(screen.getByText(/Boost is ready/)).toBeInTheDocument();
+    });
+
+    it('the red power button confirms, leaves and closes the panel', async () => {
+        const user = userEvent.setup();
+        const close = vi.spyOn(window, 'close').mockImplementation(() => {});
+        const p = props();
+        render(<Room {...p} />);
+        await user.click(screen.getByRole('button', { name: 'Close extension' }));
+        expect(screen.getByText('Close Extension?')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        expect(p.send).toHaveBeenCalledWith({ type: 'volume.stop' });
+        expect(p.send).toHaveBeenCalledWith({ type: 'session.leave' });
+        expect(close).toHaveBeenCalled();
+    });
+
+    it('puts a crown on the host', () => {
+        const p = props();
+        render(<Room {...p} sections={{ ...p.sections, people: true }} />);
+        const people = screen.getByRole('list', { name: 'Participants' });
+        expect(within(people).getByTitle('Host')).toBeInTheDocument();
+        expect(screen.getByText('2 Watching')).toBeInTheDocument();
     });
 
     it('status action sends its request', async () => {

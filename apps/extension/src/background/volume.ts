@@ -9,22 +9,44 @@ export type CaptureDeps = {
     getStreamId(tabId: number): Promise<string>;
     ensureOffscreen(): Promise<void>;
     closeOffscreen(): Promise<void>;
-    toOffscreen(message: Record<string, unknown>): Promise<void>;
+    toOffscreen(message: Record<string, unknown>): Promise<unknown>;
 };
 
 export type SetGainResult = { ok: true } | { ok: false; reason: 'needs_icon_click' };
 
 const clampGain = (gain: number) => Math.min(3, Math.max(1, Number.isFinite(gain) ? gain : 1));
 
+type OffscreenReply = { ok?: boolean; capturing?: boolean; tabId?: number | null } | undefined;
+
 export class VolumeBoost {
     capturingTabId: number | null = null;
     private gain = 1;
 
-    constructor(private readonly deps: CaptureDeps, private readonly onGain: (gain: number) => void) {}
+    /** onState(gain, readyTabId): readyTabId is the tab whose audio is being boosted, or null. */
+    constructor(private readonly deps: CaptureDeps, private readonly onState: (gain: number, readyTabId: number | null) => void) {}
+
+    private report(): void {
+        this.onState(this.gain, this.capturingTabId);
+    }
+
+    /** A capture can outlive the service worker; adopt it instead of asking for a new click. */
+    private async adopt(tabId: number): Promise<boolean> {
+        const reply = (await this.deps.toOffscreen({ type: 'OFFSCREEN_PING' }).catch(() => undefined)) as OffscreenReply;
+        if (reply?.capturing && reply.tabId === tabId) {
+            this.capturingTabId = tabId;
+            return true;
+        }
+        return false;
+    }
 
     /** Start a capture at the current gain if Chrome allows it right now. Never throws. */
     async arm(tabId: number): Promise<boolean> {
         if (this.capturingTabId === tabId) return true;
+        if (await this.adopt(tabId)) {
+            await this.deps.toOffscreen({ type: 'OFFSCREEN_SET_GAIN', gain: this.gain });
+            this.report();
+            return true;
+        }
         let streamId: string;
         try {
             streamId = await this.deps.getStreamId(tabId);
@@ -32,18 +54,26 @@ export class VolumeBoost {
             return false;
         }
         if (this.capturingTabId !== null) await this.stop();
-        await this.deps.ensureOffscreen();
-        await this.deps.toOffscreen({ type: 'OFFSCREEN_START_CAPTURE', streamId, gain: this.gain });
+        try {
+            await this.deps.ensureOffscreen();
+            const reply = (await this.deps.toOffscreen({ type: 'OFFSCREEN_START_CAPTURE', streamId, tabId, gain: this.gain })) as OffscreenReply;
+            if (!reply?.ok) throw new Error('capture did not start');
+        } catch {
+            await this.deps.closeOffscreen().catch(() => {});
+            this.report();
+            return false;
+        }
         this.capturingTabId = tabId;
-        this.onGain(this.gain);
+        this.report();
         return true;
     }
 
     async setGain(tabId: number, gain: number): Promise<SetGainResult> {
         this.gain = clampGain(gain);
+        if (this.capturingTabId !== tabId) await this.adopt(tabId);
         if (this.capturingTabId === tabId) {
             await this.deps.toOffscreen({ type: 'OFFSCREEN_SET_GAIN', gain: this.gain });
-            this.onGain(this.gain);
+            this.report();
             return { ok: true };
         }
         return (await this.arm(tabId)) ? { ok: true } : { ok: false, reason: 'needs_icon_click' };
@@ -53,7 +83,7 @@ export class VolumeBoost {
         const wasCapturing = this.capturingTabId !== null;
         this.capturingTabId = null;
         this.gain = 1;
-        this.onGain(1);
+        this.report();
         if (!wasCapturing) return;
         await this.deps.toOffscreen({ type: 'OFFSCREEN_STOP_CAPTURE' });
         await this.deps.closeOffscreen().catch(() => {});
@@ -85,6 +115,7 @@ export const chromeCaptureDeps: CaptureDeps = {
         if ((await offscreenContexts()).length > 0) await chrome.offscreen.closeDocument();
     },
     toOffscreen: async (message) => {
-        await chrome.runtime.sendMessage({ target: 'offscreen', ...message }).catch(() => undefined);
+        if (message.type === 'OFFSCREEN_PING' && (await offscreenContexts()).length === 0) return undefined;
+        return chrome.runtime.sendMessage({ target: 'offscreen', ...message }).catch(() => undefined);
     },
 };

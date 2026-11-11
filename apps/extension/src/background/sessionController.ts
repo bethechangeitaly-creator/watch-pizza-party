@@ -162,8 +162,9 @@ export class SessionController {
         this.publish();
     }
 
-    setVolumeGain(gain: number): void {
-        if (this.s.volumeGain !== gain) this.patch({ volumeGain: gain });
+    setVolumeState(gain: number, readyTabId: number | null): void {
+        const volumeReady = readyTabId !== null && readyTabId === this.s.mediaTab?.tabId;
+        if (this.s.volumeGain !== gain || this.s.volumeReady !== volumeReady) this.patch({ volumeGain: gain, volumeReady });
     }
 
     // ── internals ──────────────────────────────────────────────────────────────
@@ -180,6 +181,7 @@ export class SessionController {
             serverUrl: this.deps.serverUrl(),
             error: null,
             volumeGain: 1,
+            volumeReady: false,
             unread: 0,
         };
     }

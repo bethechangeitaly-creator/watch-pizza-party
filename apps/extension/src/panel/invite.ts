@@ -1,7 +1,10 @@
 export function inviteText(roomId: string, extensionId: string): string {
     return [
-        'Join my Watch Pizza Party 🍕',
-        `Room code: ${roomId}`,
+        '🍕 Watch Pizza Party Invite',
+        '',
+        `Room Code: ${roomId}`,
+        '',
+        'Open the Watch Pizza Party extension and join with this code!',
         `Get the extension: https://chromewebstore.google.com/detail/${extensionId}`,
     ].join('\n');
 }
@@ -9,4 +12,4 @@ export function inviteText(roomId: string, extensionId: string): string {
 export const whatsappUrl = (text: string) => `https://wa.me/?text=${encodeURIComponent(text)}`;
 
 export const mailtoUrl = (text: string) =>
-    `mailto:?subject=${encodeURIComponent('Watch Pizza Party invite')}&body=${encodeURIComponent(text)}`;
+    `mailto:?subject=${encodeURIComponent('Watch Pizza Party Room Invite')}&body=${encodeURIComponent(text)}`;
