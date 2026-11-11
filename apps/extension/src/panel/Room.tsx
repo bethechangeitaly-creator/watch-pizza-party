@@ -6,6 +6,7 @@ import { AboutSheet } from './AboutSheet';
 import { Chat } from './Chat';
 import { DONATE_URL } from './donate';
 import { inviteText, mailtoUrl, whatsappUrl } from './invite';
+import { nowPlaying } from './nowPlaying';
 import { RoomHeader } from './RoomHeader';
 import type { ActiveTab } from './activeTab';
 import type { SectionId, SectionState } from './sections';
@@ -90,8 +91,7 @@ export function Room(props: RoomProps) {
 
     const me = session.me;
     const status = statusLine(session, props.activeTab);
-    const nowPlaying = room.timeline?.title ?? (room.timeline ? 'Untitled video' : 'Nothing playing yet');
-    const platform = room.timeline ? (room.timeline.platform === 'youtube' ? 'YouTube' : 'Netflix') : null;
+    const playing = nowPlaying(session);
     const invite = inviteText(room.id, props.extensionId);
 
     const copyInvite = async () => {
@@ -173,9 +173,21 @@ export function Room(props: RoomProps) {
                     )}
                 </div>
 
-                <p className="truncate px-1 text-meta text-muted">
-                    {platform ? `▶ ${platform} · ` : ''}{nowPlaying}
-                </p>
+                <section aria-label="Now Playing" className="flex items-center gap-3 rounded-card bg-surface px-3 py-2.5">
+                    {playing.platform ? (
+                        <span className={`shrink-0 rounded-control px-2 py-1 text-meta font-bold ${playing.platform === 'YouTube' ? 'bg-bad text-bad-fg' : 'bg-cheese text-cheese-fg'}`}>
+                            ▶ {playing.platform}
+                        </span>
+                    ) : (
+                        <span className="shrink-0 text-title" aria-hidden="true">🍿</span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                        <p className="text-meta text-muted">Now Playing</p>
+                        <p className="line-clamp-2 text-body font-bold" title={playing.title ?? undefined}>
+                            {playing.title ?? (playing.platform ? 'Untitled video' : 'Nothing playing yet')}
+                        </p>
+                    </div>
+                </section>
 
                 <Section title="Invite to Join" open={sections.invite} onToggle={() => props.onToggleSection('invite')}>
                     <div className="grid grid-cols-3 gap-2">
@@ -234,7 +246,7 @@ export function Room(props: RoomProps) {
                         aria-label="Volume Boost"
                         min={VOLUME_MIN}
                         max={VOLUME_MAX}
-                        step={10}
+                        step={5}
                         value={percent}
                         disabled={!session.mediaTab}
                         onChange={(e) => setPercent(Number(e.target.value))}

@@ -14,7 +14,8 @@ export type CaptureDeps = {
 
 export type SetGainResult = { ok: true } | { ok: false; reason: 'needs_icon_click' };
 
-const clampGain = (gain: number) => Math.min(3, Math.max(1, Number.isFinite(gain) ? gain : 1));
+/** 0–600 % like 1.2 (0 mutes the tab). */
+const clampGain = (gain: number) => Math.min(6, Math.max(0, Number.isFinite(gain) ? gain : 1));
 
 type OffscreenReply = { ok?: boolean; capturing?: boolean; tabId?: number | null } | undefined;
 

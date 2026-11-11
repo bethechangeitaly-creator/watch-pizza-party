@@ -1,7 +1,7 @@
 import type { PanelRequest, PanelResponse } from '../lib/messages';
 
-export const VOLUME_MIN = 100;
-export const VOLUME_MAX = 300;
+export const VOLUME_MIN = 0;
+export const VOLUME_MAX = 600;
 export const VOLUME_NEEDS_CLICK = "Click the Watch Pizza Party icon while you're on the video tab, then try again.";
 
 export function percentToGain(percent: number): number {

@@ -156,6 +156,13 @@ describe('Room', () => {
         expect(screen.getByText('2 Watching')).toBeInTheDocument();
     });
 
+    it('shows the platform and video title', () => {
+        render(<Room {...props({ session: host() })} />);
+        const card = screen.getByRole('region', { name: 'Now Playing' });
+        expect(card).toHaveTextContent('YouTube');
+        expect(card).toHaveTextContent('Song');
+    });
+
     it('status action sends its request', async () => {
         const user = userEvent.setup();
         const p = props({ session: sessionWith({ mySync: 'drifting' }) });

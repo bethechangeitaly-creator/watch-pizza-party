@@ -100,10 +100,12 @@ describe('VolumeBoost', () => {
         expect(sent.at(-1)).toEqual({ type: 'OFFSCREEN_SET_GAIN', gain: 2 });
     });
 
-    it('clamps the gain to 1–3', async () => {
+    it('clamps the gain to 0–6 like 1.2', async () => {
         const { boost, sent } = setup();
         await boost.setGain(7, 9);
-        expect(sent.at(-1)).toMatchObject({ gain: 3 });
+        expect(sent.at(-1)).toMatchObject({ gain: 6 });
+        await boost.setGain(7, -1);
+        expect(sent.at(-1)).toMatchObject({ gain: 0 });
     });
 
     it('stop releases the capture', async () => {

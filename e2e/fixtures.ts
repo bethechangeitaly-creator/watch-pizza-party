@@ -12,16 +12,17 @@ const unpackedId = (dir: string) =>
     [...createHash('sha256').update(dir).digest('hex').slice(0, 32)].map((c) => String.fromCharCode(97 + parseInt(c, 16))).join('');
 
 /** allowCapture: Chromium's test switch that lets tabCapture skip the toolbar click, so volume boost can be tested. */
-export async function launchMember(opts: { allowCapture?: boolean } = {}): Promise<Member> {
+export async function launchMember(opts: { allowCapture?: boolean; audible?: boolean } = {}): Promise<Member> {
     const context = await chromium.launchPersistentContext('', {
         channel: 'chromium',
-        headless: true,
+        headless: !opts.audible,
         viewport: { width: 1280, height: 800 },
         args: [
             `--disable-extensions-except=${DIST}`,
             `--load-extension=${DIST}`,
             '--autoplay-policy=no-user-gesture-required',
-            '--mute-audio',
+            // Headless Chromium plays no audio, so the loudness test runs headed, off-screen.
+            ...(opts.audible ? ['--window-position=-2400,-2400'] : ['--mute-audio']),
             ...(opts.allowCapture ? [`--allowlisted-extension-id=${unpackedId(DIST)}`] : []),
         ],
     });

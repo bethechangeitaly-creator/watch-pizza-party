@@ -6,9 +6,9 @@ const ok = { ok: true } as unknown as PanelResponse;
 
 describe('volume boost (panel)', () => {
     it('clamps', () => {
-        expect(percentToGain(50)).toBe(1);
-        expect(percentToGain(350)).toBe(3);
-        expect(percentToGain(150)).toBe(1.5);
+        expect(percentToGain(-10)).toBe(0);
+        expect(percentToGain(700)).toBe(6);
+        expect(percentToGain(450)).toBe(4.5);
     });
 
     it('sends the gain to the background', async () => {
