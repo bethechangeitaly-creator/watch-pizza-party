@@ -23,6 +23,8 @@ export type ServerConnectionLike = {
 
 export type SessionDeps = {
     storage: KeyValueArea;
+    /** chrome.storage.session: survives worker restarts, cleared when the browser restarts. */
+    sessionArea: KeyValueArea;
     storageKey: string;
     now: () => number;
     serverUrl: () => string;
@@ -39,6 +41,7 @@ export type SessionDeps = {
 };
 
 const FATAL_CODES = new Set(['room_not_found', 'update_required', 'room_full']);
+export const MEDIA_TAB_KEY = 'wpp.mediaTab';
 const UNREAD_CAP = 999;
 
 /**
@@ -77,7 +80,9 @@ export class SessionController {
         }
         this.persisted = saved;
         this.desiredUsername = saved.username;
-        const tab = saved.mediaTabId !== null ? await this.deps.getTab(saved.mediaTabId) : null;
+        // Tab ids are reused after a browser restart: only trust one recorded in this browser session.
+        const sameBrowserSession = (await this.deps.sessionArea.get(MEDIA_TAB_KEY))[MEDIA_TAB_KEY] === saved.mediaTabId;
+        const tab = saved.mediaTabId !== null && sameBrowserSession ? await this.deps.getTab(saved.mediaTabId) : null;
         this.s = {
             ...this.idleState(),
             status: 'connecting',
@@ -184,8 +189,20 @@ export class SessionController {
         this.publish();
     }
 
+    private recordMediaTab(): void {
+        const tabId = this.s.mediaTab?.tabId ?? null;
+        void this.deps.sessionArea.set({ [MEDIA_TAB_KEY]: tabId });
+    }
+
+    private lastRecordedTab: number | null | undefined = undefined;
+
     private publish(): void {
         this.s = { ...this.s, serverUrl: this.deps.serverUrl() };
+        const tabId = this.s.mediaTab?.tabId ?? null;
+        if (tabId !== this.lastRecordedTab) {
+            this.lastRecordedTab = tabId;
+            this.recordMediaTab();
+        }
         this.deps.emit(this.s);
     }
 

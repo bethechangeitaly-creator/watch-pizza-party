@@ -221,6 +221,7 @@ function handleContentMessage(message: ContentToBackground, tabId: number): void
 
 const controller = new SessionController({
     storage,
+    sessionArea: chrome.storage.session as unknown as KeyValueArea,
     storageKey: sessionKey(chrome.extension.inIncognitoContext),
     now: Date.now,
     serverUrl: () => serverUrl,

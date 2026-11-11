@@ -9,6 +9,7 @@ function makeController(overrides: Partial<SessionDeps> = {}) {
     const connections: FakeConnection[] = [];
     const deps: SessionDeps = {
         storage: memoryArea(),
+        sessionArea: memoryArea(),
         storageKey: 'k',
         now: () => 1000,
         serverUrl: () => 'https://s',
@@ -53,13 +54,14 @@ const chat = (userId: string): ServerMessage => ({
 describe('SessionController', () => {
     it('persists the token from room.joined and resumes with it after restart', async () => {
         const storage = memoryArea();
-        const a = makeController({ storage });
+        const sessionArea = memoryArea();
+        const a = makeController({ storage, sessionArea });
         await a.controller.join('Jol4I72BE4', 'Luca', 7, 'Video');
         expect(a.connections[0].sent[0]).toEqual({ type: 'room.join', payload: { roomId: 'Jol4I72BE4', username: 'Luca', protocolVersion: 2 } });
         a.connections[0].emit(joined());
         expect(a.controller.state()).toMatchObject({ status: 'joined', me: { userId: 'u1' }, mediaTab: { tabId: 7, title: 'Video' } });
 
-        const b = makeController({ storage });
+        const b = makeController({ storage, sessionArea });
         await b.controller.restore();
         expect(b.connections[0].sent[0]).toEqual({
             type: 'room.join', payload: { roomId: 'Jol4I72BE4', token: 'T'.repeat(24), username: 'Luca', protocolVersion: 2 },
@@ -69,12 +71,25 @@ describe('SessionController', () => {
 
     it('drops a persisted media tab that no longer exists', async () => {
         const storage = memoryArea();
+        const sessionArea = memoryArea();
+        const a = makeController({ storage, sessionArea });
+        await a.controller.join('Jol4I72BE4', 'Luca', 7, 'Video');
+        a.connections[0].emit(joined());
+        const b = makeController({ storage, sessionArea, getTab: async () => null });
+        await b.controller.restore();
+        expect(b.controller.state().mediaTab).toBeNull();
+    });
+
+    it('drops the media tab after a browser restart (tab ids are reused)', async () => {
+        const storage = memoryArea();
         const a = makeController({ storage });
         await a.controller.join('Jol4I72BE4', 'Luca', 7, 'Video');
         a.connections[0].emit(joined());
-        const b = makeController({ storage, getTab: async () => null });
+        // New browser session: storage.session is empty, and tab 7 now belongs to something else.
+        const b = makeController({ storage, sessionArea: memoryArea(), getTab: async () => ({ title: 'Unrelated' }) });
         await b.controller.restore();
         expect(b.controller.state().mediaTab).toBeNull();
+        expect(b.connections[0].sent[0]).toMatchObject({ type: 'room.join', payload: { token: 'T'.repeat(24) } });
     });
 
     it('creates a room then joins it with the creator token', async () => {
