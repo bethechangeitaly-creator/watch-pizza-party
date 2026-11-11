@@ -4,14 +4,16 @@
     "version": "1.2",
     "workspaces": [
         "apps/*",
-        "packages/*"
+        "packages/*",
+        "e2e"
     ],
     "scripts": {
         "dev:server": "npm run build --workspace=@watch-party/shared && npm run dev --workspace=@watch-party/server",
         "build:server": "npm run build --workspace=@watch-party/shared && npm run build --workspace=@watch-party/server",
         "start:server": "NODE_ENV=production node apps/server/dist/index.js",
         "build:extension": "npm run build --workspace=@watch-party/extension",
-        "test": "npm test --workspaces --if-present"
+        "test": "npm test --workspaces --if-present",
+        "e2e": "npm run e2e --workspace=@watch-party/e2e"
     },
     "devDependencies": {
         "typescript": "^5.3.3",

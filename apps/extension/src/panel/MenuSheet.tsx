@@ -149,14 +149,14 @@ export function MenuSheet(props: {
 
             <Section title="More">
                 <div className="flex flex-col items-stretch gap-1">
-                    <Button size="sm" variant="ghost" className="justify-start" onClick={() => window.open(DONATE_URL, '_blank', 'noopener')}>
+                    <Button size="sm" variant="ghost" align="start" onClick={() => window.open(DONATE_URL, '_blank', 'noopener')}>
                         Support Watch Pizza Party
                     </Button>
-                    <Button size="sm" variant="ghost" className="justify-start" onClick={props.onAbout}>About & guide</Button>
+                    <Button size="sm" variant="ghost" align="start" onClick={props.onAbout}>About & guide</Button>
                     <Button
                         size="sm"
                         variant="ghost"
-                        className="justify-start"
+                        align="start"
                         onClick={() => void send({ type: 'panel.minimize' }).then(() => window.close())}
                     >
                         Minimize to bubble
@@ -168,7 +168,7 @@ export function MenuSheet(props: {
                             <Button size="sm" variant="ghost" onClick={() => setConfirmLeave(false)}>Stay</Button>
                         </div>
                     ) : (
-                        <Button size="sm" variant="danger" className="justify-start" onClick={() => setConfirmLeave(true)}>
+                        <Button size="sm" variant="danger" align="start" onClick={() => setConfirmLeave(true)}>
                             Leave party
                         </Button>
                     )}
