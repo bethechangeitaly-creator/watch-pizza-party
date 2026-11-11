@@ -43,6 +43,7 @@ export type PanelRequest =
     | { type: 'server.setUrl'; url: string }
     | { type: 'panel.minimize' }
     | { type: 'volume.set'; gain: number }
+    | { type: 'volume.arm'; tabId: number }
     | { type: 'volume.stop' };
 
 export type PanelResponse = { ok: true; state: PublicSession } | { ok: false; error: string; code?: string };

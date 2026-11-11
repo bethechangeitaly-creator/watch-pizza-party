@@ -359,6 +359,10 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
             const result = await volume.setGain(tabId, req.gain);
             return result.ok ? ok() : fail('Chrome needs a click on the extension icon on the video tab.', result.reason);
         }
+        case 'volume.arm':
+            // Only the party's video tab, and only while Chrome still allows it (popup just opened).
+            if (req.tabId === controller.state().mediaTab?.tabId) await armVolumeIfAllowed(req.tabId);
+            return ok();
         case 'volume.stop':
             await volume.stop();
             return ok();
@@ -370,7 +374,7 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
 const PANEL_REQUEST_TYPES = new Set<PanelRequest['type']>([
     'session.get', 'session.create', 'session.join', 'session.leave', 'session.useTab', 'chat.send',
     'sync.force', 'sync.request', 'sync.resyncMe', 'server.setUrl', 'panel.minimize',
-    'volume.set', 'volume.stop',
+    'volume.set', 'volume.arm', 'volume.stop',
 ]);
 
 function isPanelRequest(raw: unknown): raw is PanelRequest {
@@ -416,7 +420,7 @@ async function bootstrap(): Promise<void> {
     const area: Record<string, unknown> = await chrome.storage.session.get(ENTRIES_KEY).catch(() => ({}));
     const stored = area[ENTRIES_KEY] as typeof entriesCache | undefined;
     if (stored && Array.isArray(stored.entries)) entriesCache = stored;
-    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
     serverUrl = await loadServerUrl(storage);
     await migrateLegacyKeys(storage);
     await controller.restore();
