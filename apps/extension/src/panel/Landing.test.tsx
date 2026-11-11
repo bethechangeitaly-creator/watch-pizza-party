@@ -16,6 +16,14 @@ function props(over: Partial<Parameters<typeof Landing>[0]> = {}) {
 }
 
 describe('Landing', () => {
+    it('opens the guide from the How it works link', async () => {
+        const user = userEvent.setup();
+        const p = props();
+        render(<Landing {...p} />);
+        await user.click(screen.getByRole('button', { name: 'How it works' }));
+        expect(p.onAbout).toHaveBeenCalled();
+    });
+
     it('can start a party from any tab', async () => {
         const user = userEvent.setup();
         const p = props({ activeTab: { tabId: 1, url: 'https://www.youtube.com/' } });

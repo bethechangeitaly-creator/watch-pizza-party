@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Info, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { extractMedia, generateRandomName, isSupportedSite, sanitizeUsername } from '@watch-party/shared';
 import type { PanelRequest, PanelResponse, PublicSession } from '../lib/messages';
 import type { ActiveTab } from './activeTab';
@@ -66,23 +66,25 @@ export function Landing({
     };
 
     return (
-        <main className="flex h-full flex-col gap-6 overflow-y-auto bg-bg p-4">
-            <header className="flex items-center gap-2">
-                <img src="/icon128.png" alt="" className="h-7 w-7 rounded-control" />
-                <span className="flex-1 text-title font-semibold">Watch Pizza Party</span>
-                <IconButton label="About" onClick={onAbout}>
-                    <Info size={16} />
-                </IconButton>
+        <main className="flex h-full flex-col gap-5 overflow-y-auto bg-bg p-4 text-text">
+            <header className="flex items-center gap-2.5">
+                <span className="flex h-10 w-10 items-center justify-center rounded-card bg-cheese">
+                    <img src="/icon128.png" alt="" className="h-8 w-8" />
+                </span>
+                <span className="flex-1 text-title font-bold">Watch Pizza Party</span>
+                <button type="button" onClick={onAbout} className="text-meta font-bold text-accent-strong underline-offset-2 hover:underline dark:text-accent">
+                    How it works
+                </button>
             </header>
 
             <section className="flex flex-col gap-1">
-                <h1 className="text-display font-semibold">Watch together, in sync.</h1>
+                <h1 className="text-display font-bold">Movie night, together 🍕</h1>
                 <p className="text-body text-muted">
-                    Start a party on a YouTube or Netflix video, share the code, and everyone stays in sync.
+                    Start a party, share the code, and everyone watches YouTube or Netflix in sync — with chat.
                 </p>
             </section>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-card bg-surface px-3 py-2 shadow-[0_1px_3px_rgb(120_60_20/0.08)] dark:shadow-none">
                 <label htmlFor="wpp-name" className="text-body text-muted">You'll join as</label>
                 <input
                     id="wpp-name"
@@ -97,7 +99,7 @@ export function Landing({
             </div>
 
             <section className="flex flex-col gap-2">
-                <Button variant="primary" onClick={start} disabled={!activeTab || busy} loading={busy && lastAction === 'create'}>
+                <Button variant="primary" className="h-11" onClick={start} disabled={!activeTab || busy} loading={busy && lastAction === 'create'}>
                     Start a party
                 </Button>
                 {media ? (
@@ -105,8 +107,8 @@ export function Landing({
                 ) : (
                     <p className="text-meta text-muted">You can open a YouTube or Netflix video after starting.</p>
                 )}
-                {status === 'waking' && <p className="text-meta text-warning">{WAKING_NOTE}</p>}
-                {sessionError && lastAction !== 'join' && <p role="alert" className="text-meta text-danger">{sessionError}</p>}
+                {status === 'waking' && <p className="rounded-control bg-warn px-3 py-2 text-meta text-warn-fg">{WAKING_NOTE}</p>}
+                {sessionError && lastAction !== 'join' && <p role="alert" className="rounded-control bg-bad px-3 py-2 text-meta text-bad-fg">{sessionError}</p>}
             </section>
 
             <div className="flex items-center gap-3 text-meta text-muted" aria-hidden="true">
@@ -141,7 +143,7 @@ export function Landing({
                 {activeTab && !isSupportedSite(activeTab.url) && !codeError && (
                     <p className="text-meta text-muted">The video will open in a new tab.</p>
                 )}
-                {sessionError && lastAction === 'join' && <p role="alert" className="text-meta text-danger">{sessionError}</p>}
+                {sessionError && lastAction === 'join' && <p role="alert" className="rounded-control bg-bad px-3 py-2 text-meta text-bad-fg">{sessionError}</p>}
                 {busy && lastAction === null && (
                     <p className="text-meta text-muted">Rejoining your party…</p>
                 )}

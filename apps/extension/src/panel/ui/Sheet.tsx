@@ -52,7 +52,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
                 className="relative max-h-[85vh] overflow-y-auto rounded-t-sheet bg-surface px-4 pb-4 pt-3"
             >
                 <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-muted/30" aria-hidden="true" />
-                <h2 id={titleId} className="mb-3 text-title font-semibold">{title}</h2>
+                <h2 id={titleId} className="mb-3 text-title font-bold">{title}</h2>
                 {children}
             </div>
         </div>

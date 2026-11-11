@@ -31,7 +31,7 @@ export function Button({
             {...rest}
             disabled={disabled || loading}
             aria-busy={loading || undefined}
-            className={`inline-flex items-center ${align === 'center' ? 'justify-center' : 'justify-start'} gap-2 rounded-control font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`inline-flex items-center ${align === 'center' ? 'justify-center' : 'justify-start'} gap-2 rounded-control font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 size === 'md' ? 'h-9 px-4 text-body' : 'h-[30px] px-3 text-meta'
             } ${VARIANTS[variant]} ${className}`}
         >
