@@ -11,7 +11,7 @@ const timeline = (o: Partial<Timeline> = {}): Timeline => ({
 function setup() {
     const clock = manualClock();
     const adapter = fakeAdapter();
-    const reports: Array<{ rev: number; driftSec: number; state: ViewerSyncState }> = [];
+    const reports: Array<{ rev: number; driftSec: number; state: ViewerSyncState; needsClick?: boolean }> = [];
     const follower = new ViewerFollower(adapter, (r) => reports.push(r), clock.now);
     return { clock, adapter, reports, follower };
 }
@@ -74,7 +74,7 @@ describe('ViewerFollower', () => {
         clock.advance(1300);
         follower.tick();
         expect(reports).toHaveLength(2);
-        expect(reports[0]).toEqual({ rev: 1, driftSec: 0, state: 'paused' });
+        expect(reports[0]).toEqual({ rev: 1, driftSec: 0, state: 'paused', needsClick: false });
     });
 
     it('uses the clock offset', () => {
@@ -93,5 +93,33 @@ describe('ViewerFollower', () => {
         clock.advance(500);
         follower.tick();
         expect(adapter.calls.filter((c) => c[0] === 'seek')).toHaveLength(1);
+    });
+
+    describe('when the viewer has to click the video once (Prime Video)', () => {
+        it('an uncalibrated clock: follows play/pause but makes no jumps, and asks for a click', () => {
+            const { adapter, reports, follower } = setup();
+            adapter.uncalibrated = true;
+            follower.setTimeline(timeline(), 0, false);
+            adapter.snap = { positionSec: 10, paused: true, rate: 1, buffering: false, inAd: false };
+            follower.tick();
+            expect(adapter.calls).toEqual([['play']]);
+            expect(reports.at(-1)?.needsClick).toBe(true);
+        });
+
+        it('play blocked by Chrome for 3 s: asks for a click; clears once playing', () => {
+            const { adapter, reports, follower, clock } = setup();
+            follower.setTimeline(timeline({ positionSec: 10, anchorServerMs: 0 }), 0, false);
+            adapter.snap = { positionSec: 10, paused: true, rate: 1, buffering: false, inAd: false };
+            follower.tick();
+            expect(reports.at(-1)?.needsClick ?? false).toBe(false);
+            clock.advance(3000);
+            adapter.snap = { positionSec: 13, paused: true, rate: 1, buffering: false, inAd: false };
+            follower.tick();
+            expect(reports.at(-1)?.needsClick).toBe(true);
+            adapter.snap = { positionSec: 13, paused: false, rate: 1, buffering: false, inAd: false };
+            clock.advance(250);
+            follower.tick();
+            expect(reports.at(-1)?.needsClick).toBe(false);
+        });
     });
 });

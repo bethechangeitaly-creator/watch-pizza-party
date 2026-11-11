@@ -245,6 +245,7 @@ function handleContentMessage(message: ContentToBackground, tabId: number): void
             if (!fromMediaTab || state.isHost) return;
             controller.send({ type: 'sync.viewer_status', payload: { rev: message.rev, driftSec: message.driftSec, state: message.state } });
             controller.setMySync(message.state);
+            controller.setNeedsVideoClick(message.needsClick === true);
             return;
         default:
             return;

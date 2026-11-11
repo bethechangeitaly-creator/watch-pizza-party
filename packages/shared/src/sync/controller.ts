@@ -46,7 +46,8 @@ export function decideCorrection(input: {
     const driftSec = player.positionSec - target.positionSec;
     const absDrift = Math.abs(driftSec);
 
-    if (player.inAd) return { driftSec, state: 'ad', actions: [] };
+    // The viewer's own ad can't be skipped; if it sits paused while the host plays, let it run so it ends.
+    if (player.inAd) return { driftSec, state: 'ad', actions: player.paused && !target.paused ? [{ type: 'play' }] : [] };
     if (player.buffering) return { driftSec, state: 'buffering', actions: [] };
 
     const actions: SyncAction[] = [];

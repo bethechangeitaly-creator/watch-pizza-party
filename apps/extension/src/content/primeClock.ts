@@ -21,10 +21,17 @@ export class PrimeClock {
     private correction = 0;
     private durationSec = Number.NaN;
     private inAdBreak: Break | null = null;
+    private seen = false;
+    /** True once the clock can be trusted: it watched from the start, or it has read the player's time. */
+    calibrated = false;
 
     observe(o: PrimeObservation): void {
         if (Number.isFinite(this.durationSec) && Math.abs(o.durationSec - this.durationSec) > 2) this.reset();
         this.durationSec = o.durationSec;
+        if (!this.seen) {
+            this.seen = true;
+            if (o.streamSec < 3) this.calibrated = true; // nothing (no ad) can be before this point unseen
+        }
 
         if (o.adRemainingSec !== null) {
             const end = o.streamSec + o.adRemainingSec;
@@ -50,6 +57,7 @@ export class PrimeClock {
             const content = this.toContent(o.streamSec);
             const shown = o.labelElapsedSec; // whole seconds: the real time is in [shown, shown + 1)
             if (content < shown - 0.25 || content > shown + 1.25) this.correction += content - (shown + 0.5);
+            this.calibrated = true;
         }
     }
 
@@ -82,5 +90,7 @@ export class PrimeClock {
         this.breaks = [];
         this.correction = 0;
         this.inAdBreak = null;
+        this.seen = false;
+        this.calibrated = false;
     }
 }

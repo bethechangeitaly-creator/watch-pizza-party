@@ -9,6 +9,10 @@ import {
 import type { PlayerAdapter } from './adapters';
 
 const REPORT_EVERY_MS = 2000;
+/** If the video is still paused this long after we asked it to play, Chrome is blocking playback. */
+const BLOCKED_AFTER_MS = 2500;
+
+export type ViewerReport = { rev: number; driftSec: number; state: ViewerSyncState; needsClick: boolean };
 
 /** Runs the sync controller against the viewer's own player. */
 export class ViewerFollower {
@@ -16,11 +20,12 @@ export class ViewerFollower {
     private offsetMs = 0;
     private forceNext = false;
     private lastSeekAtMs = -Infinity;
-    private lastReport: { at: number; state: ViewerSyncState } | null = null;
+    private lastReport: { at: number; state: ViewerSyncState; needsClick: boolean } | null = null;
+    private playPendingSince: number | null = null;
 
     constructor(
         private readonly adapter: PlayerAdapter,
-        private readonly report: (status: { rev: number; driftSec: number; state: ViewerSyncState }) => void,
+        private readonly report: (status: ViewerReport) => void,
         private readonly now: () => number,
     ) {}
 
@@ -56,7 +61,17 @@ export class ViewerFollower {
         });
         this.forceNext = false;
 
-        for (const action of decision.actions) {
+        // A click on the video is needed when Chrome blocks playback in a tab we opened, or (Prime Video)
+        // until the player has shown its time once — before that, jumps would land in the wrong place.
+        const uncalibrated = this.adapter.needsUserClick?.() ?? false;
+        const hostPlaying = !isTimelinePaused(t) && !t.inAd;
+        if (hostPlaying && player.paused) this.playPendingSince ??= now;
+        else this.playPendingSince = null;
+        const blocked = this.playPendingSince !== null && now - this.playPendingSince >= BLOCKED_AFTER_MS;
+        const needsClick = uncalibrated || blocked;
+        const actions = uncalibrated ? decision.actions.filter((a) => a.type !== 'seek') : decision.actions;
+
+        for (const action of actions) {
             switch (action.type) {
                 case 'seek':
                     this.adapter.seek(action.toSec);
@@ -74,9 +89,10 @@ export class ViewerFollower {
             }
         }
 
-        if (!this.lastReport || this.lastReport.state !== decision.state || now - this.lastReport.at >= REPORT_EVERY_MS) {
-            this.lastReport = { at: now, state: decision.state };
-            this.report({ rev: t.rev, driftSec: Math.round(decision.driftSec * 1000) / 1000, state: decision.state });
+        const changed = !this.lastReport || this.lastReport.state !== decision.state || this.lastReport.needsClick !== needsClick;
+        if (changed || now - this.lastReport!.at >= REPORT_EVERY_MS) {
+            this.lastReport = { at: now, state: decision.state, needsClick };
+            this.report({ rev: t.rev, driftSec: Math.round(decision.driftSec * 1000) / 1000, state: decision.state, needsClick });
         }
     }
 }

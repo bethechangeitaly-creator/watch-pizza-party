@@ -56,6 +56,8 @@ export function statusLine(session: PublicSession, activeTab: ActiveTab | null, 
         };
     }
 
+    if (!session.isHost && session.needsVideoClick) return { tone: 'warn', text: 'Click once on the video to start syncing' };
+
     const line = baseLine(session);
     // A video open in another tab can become the party tab with one click.
     const videoElsewhere = activeTab && activeTab.tabId !== session.mediaTab.tabId && activeTab.url && extractMedia(activeTab.url);

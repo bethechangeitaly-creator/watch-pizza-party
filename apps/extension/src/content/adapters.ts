@@ -13,6 +13,8 @@ export interface PlayerAdapter {
     setRate(rate: number): void;
     /** Opens the player when the page has one but it isn't showing (Prime Video detail pages). */
     open?(): void;
+    /** True while the viewer must click the video once before jumps can be trusted (Prime Video). */
+    needsUserClick?(): boolean;
 }
 
 const NETFLIX_AD_SELECTORS = [
@@ -160,6 +162,7 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
         setRate: () => {
             // Prime profile never nudges the rate.
         },
+        needsUserClick: () => !clock.calibrated,
         open: () => {
             if (player() || Date.now() - lastOpenAt < 5000) return;
             lastOpenAt = Date.now();

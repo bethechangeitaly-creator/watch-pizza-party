@@ -35,6 +35,8 @@ describe('decideCorrection', () => {
     it('target playing, player paused → play', () =>
         expect(run({}, play(100.05, { paused: true })).actions).toEqual([{ type: 'play' }]));
     it('own ad → no actions', () => expect(run({}, play(50, { inAd: true }))).toMatchObject({ state: 'ad', actions: [] }));
+    it('own ad stuck paused while the host plays → press play so the ad can end', () =>
+        expect(run({}, play(50, { inAd: true, paused: true }))).toMatchObject({ state: 'ad', actions: [{ type: 'play' }] }));
     it('buffering → no actions', () =>
         expect(run({}, play(90, { buffering: true }))).toMatchObject({ state: 'buffering', actions: [] }));
     it('force bypasses cooldown with deadband threshold', () =>

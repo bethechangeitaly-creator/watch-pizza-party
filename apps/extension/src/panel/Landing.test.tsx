@@ -11,7 +11,7 @@ import type { ServerStatus } from './serverStatus';
 
 const idle: PublicSession = {
     status: 'idle', roomId: null, me: null, isHost: false, room: null, mediaTab: null, mySync: null,
-    serverUrl: 'https://s', error: null, volumeGain: 1, volumeReady: false, unread: 0,
+    serverUrl: 'https://s', error: null, volumeGain: 1, volumeReady: false, needsVideoClick: false, unread: 0,
 };
 
 function props(over: Partial<Parameters<typeof Landing>[0]> = {}) {

@@ -66,4 +66,25 @@ describe('PrimeClock', () => {
         clock.observe({ streamSec: 5, durationSec: 2900, adRemainingSec: null, labelElapsedSec: null });
         expect(clock.toContent(5)).toBeCloseTo(5, 1);
     });
+
+    it('is trusted when it watched from the start, or once it has read the shown time', () => {
+        const fromStart = new PrimeClock();
+        play(fromStart, 0, 10, { start: 0, end: 5 });
+        expect(fromStart.calibrated).toBe(true);
+
+        const resumed = new PrimeClock(); // opened where the viewer left off: earlier ads unknown
+        resumed.observe({ streamSec: 1864, durationSec: D, adRemainingSec: null, labelElapsedSec: null });
+        expect(resumed.calibrated).toBe(false);
+        resumed.observe({ streamSec: 1866, durationSec: D, adRemainingSec: null, labelElapsedSec: 1700 });
+        expect(resumed.calibrated).toBe(true);
+        expect(resumed.toContent(1866)).toBeCloseTo(1700.5, 0);
+    });
+
+    it('a new episode needs calibrating again', () => {
+        const clock = new PrimeClock();
+        clock.observe({ streamSec: 500, durationSec: D, adRemainingSec: null, labelElapsedSec: 460 });
+        expect(clock.calibrated).toBe(true);
+        clock.observe({ streamSec: 900, durationSec: 2900, adRemainingSec: null, labelElapsedSec: null });
+        expect(clock.calibrated).toBe(false);
+    });
 });

@@ -5,12 +5,14 @@ export type FakeAdapter = PlayerAdapter & {
     calls: Array<[string, ...number[]]>;
     snap: PlayerSnapshot | null;
     mediaRef: MediaRef | null;
+    uncalibrated: boolean;
 };
 
 export function fakeAdapter(init: { media?: MediaRef | null; snap?: PlayerSnapshot | null } = {}): FakeAdapter {
     const adapter: FakeAdapter = {
         platform: 'youtube',
         calls: [],
+        uncalibrated: false,
         mediaRef: init.media === undefined ? { platform: 'youtube', mediaId: 'dQw4w9WgXcQ' } : init.media,
         snap: init.snap === undefined ? { positionSec: 10, paused: false, rate: 1, buffering: false, inAd: false } : init.snap,
         media: () => adapter.mediaRef,
@@ -20,6 +22,7 @@ export function fakeAdapter(init: { media?: MediaRef | null; snap?: PlayerSnapsh
         pause: () => { adapter.calls.push(['pause']); },
         seek: (sec) => { adapter.calls.push(['seek', sec]); },
         setRate: (rate) => { adapter.calls.push(['rate', rate]); },
+        needsUserClick: () => adapter.uncalibrated,
     };
     return adapter;
 }

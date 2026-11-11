@@ -153,6 +153,10 @@ export class SessionController {
         if (open && this.s.unread !== 0) this.patch({ unread: 0 });
     }
 
+    setNeedsVideoClick(value: boolean): void {
+        if (this.s.needsVideoClick !== value) this.patch({ needsVideoClick: value });
+    }
+
     setMySync(state: ViewerSyncState | null): void {
         if (this.s.mySync !== state) this.patch({ mySync: state });
     }
@@ -182,6 +186,7 @@ export class SessionController {
             error: null,
             volumeGain: 1,
             volumeReady: false,
+            needsVideoClick: false,
             unread: 0,
         };
     }

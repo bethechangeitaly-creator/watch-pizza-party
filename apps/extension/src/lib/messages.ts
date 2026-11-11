@@ -29,6 +29,8 @@ export type PublicSession = {
     volumeGain: number;
     /** Volume boost is capturing the party's video tab, so the slider works without another click. */
     volumeReady: boolean;
+    /** Viewer: the video needs one click (Chrome blocked playback, or Prime Video must show its time). */
+    needsVideoClick: boolean;
     unread: number;
 };
 
@@ -81,7 +83,7 @@ export type BubbleState = {
 export type ContentToBackground =
     | { type: 'content.hello'; url: string }
     | { type: 'content.hostEvent'; event: HostPlayerEvent }
-    | { type: 'content.viewerStatus'; rev: number; driftSec: number; state: ViewerSyncState }
+    | { type: 'content.viewerStatus'; rev: number; driftSec: number; state: ViewerSyncState; needsClick?: boolean }
     | { type: 'content.openPanel' }
     | { type: 'content.dismissBubble' };
 
@@ -114,6 +116,7 @@ export const ContentToBackgroundSchema = z.discriminatedUnion('type', [
         rev: z.number().int().nonnegative(),
         driftSec: z.number().finite(),
         state: ViewerSyncStateSchema,
+        needsClick: z.boolean().optional(),
     }),
     z.object({ type: z.literal('content.openPanel') }),
     z.object({ type: z.literal('content.dismissBubble') }),

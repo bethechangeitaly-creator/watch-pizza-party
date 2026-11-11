@@ -29,6 +29,7 @@ export function sessionWith(o: {
         error: null,
         volumeGain: 1,
         volumeReady: false,
+        needsVideoClick: false,
         unread: 0,
     };
 }

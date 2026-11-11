@@ -53,4 +53,10 @@ describe('statusLine', () => {
         expect(statusLine(sessionWith({ mediaTab: null }), prime, false).action).toEqual({ label: 'Use this tab', request: { type: 'session.useTab', tabId: 1 }, needsPrime: true });
         expect(statusLine(sessionWith({ mediaTab: null }), prime, true).action).toEqual({ label: 'Use this tab', request: { type: 'session.useTab', tabId: 1 } });
     });
+
+    it('asks a viewer to click the video once when it is needed', () => {
+        const session = { ...sessionWith({ playing: true, mySync: 'drifting' }), needsVideoClick: true };
+        expect(statusLine(session, otherSite)).toEqual({ tone: 'warn', text: 'Click once on the video to start syncing' });
+        expect(statusLine({ ...session, isHost: true }, otherSite).text).not.toMatch(/Click once/);
+    });
 });
