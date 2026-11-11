@@ -62,4 +62,4 @@ Content script (src/content, media tab only) ◄──────┤  ServerCon
 - `ALLOWED_ORIGINS` — extra CORS origins (comma separated); `chrome-extension://*` and localhost are always allowed
 - `TRUST_PROXY` — `1` when a reverse proxy is in front (Render): per-IP limits then use the last `X-Forwarded-For` entry; otherwise the socket address
 
-Extension build: `VITE_SERVER_URL` sets the server it talks to.
+Extension build: `VITE_SERVER_URL` sets the server it talks to (default: the production server, `https://watch-pizza-party.onrender.com`). Release process: `DEPLOYMENT_GUIDE.md`.

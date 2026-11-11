@@ -1,70 +1,81 @@
-# Watch Pizza Party — Deployment Guide (v2)
+# Watch Pizza Party 2.0 — Release Guide
 
-Version 2 speaks **protocol v2**, which is not compatible with v1.2. The v2 extension and the v1 extension must talk to **different servers** until everyone has auto-updated. The plan below never breaks an existing user.
+Version 2.0 replaces the server **in place**: same address (`https://watch-pizza-party.onrender.com`), new code. The 2.0 extension already points at that address, so there is no second permanent server.
 
-## 1. Create a new Giphy key
+Version 2.0 and 1.2 can't talk to each other. When the server switches, anyone still on 1.2 sees *"Watch Pizza Party was updated. Update the extension (chrome://extensions → Update) and try again."* until Chrome updates them (usually within hours). To keep that window short, the server switch and the store release happen together (Part 3).
 
-The v1.2 key is inside the published extension and must be treated as public.
+Who does what: **you** work in the Render, Giphy and Chrome Web Store dashboards; **Claude** runs the git, build and packaging commands.
 
-1. Create a new API key at https://developers.giphy.com/dashboard/ (ask for a production key — beta keys are limited to 100 requests/hour).
-2. You'll put it on the server in step 2. **Revoke the old key** only after step 5, once v1.2 users have updated (v1.2 still uses it for its GIF picker).
+---
 
-## 2. Deploy the v2 server as a new service
+## Part 1 — Preparation (once)
 
-Keep the existing `watch-pizza-party` service running untouched — v1.2 users still need it.
+1. **Push the 2.0 branch to GitHub** *(Claude)*. This uploads branch `v2-overhaul`. It does **not** change the live server: Render only deploys `main`.
+2. **New Giphy key** *(you)*. The key inside 1.2 is public. At https://developers.giphy.com/dashboard/ create an app and copy its API key. Ask for a production key if Giphy offers it; beta keys are limited to 100 searches per hour.
+3. **Check the live service settings** *(you)*. Render → `watch-pizza-party` → **Settings**. Note:
+   - **Runtime**: should be *Docker*, with Dockerfile path `apps/server/Dockerfile`
+   - **Branch**: should be `main`
+   - **Auto-Deploy**: should be *On Commit*
+   - **Health Check Path**
 
-1. Render → **New + → Web Service** → same repository, branch with v2.
-2. Name: `watch-pizza-party-v2` (gives `https://watch-pizza-party-v2.onrender.com`).
-3. Environment: **Docker**, Dockerfile path `apps/server/Dockerfile`.
-4. Environment variables:
-   - `GIPHY_API_KEY` = the new key
-   - `ALLOWED_ORIGINS` = leave empty (extension origins are always allowed)
-   - `TRUST_PROXY` = `1` — Render's proxy sits in front of the server. Without it every user looks like the proxy's IP and shares one rate limit. After deploying, check with a couple of real users that "Too many parties started from this network" never appears; if it does, Render's proxy is not appending the client IP last and per-IP limits must be revisited.
-5. Health check path: `/health`.
-6. Deploy, then check:
+   Send these to Claude. If anything differs, Claude adjusts the steps.
 
-```bash
-curl https://watch-pizza-party-v2.onrender.com/health
-curl -X POST https://watch-pizza-party-v2.onrender.com/rooms -H 'Content-Type: application/json' -d '{"protocolVersion":2}'
-```
+## Part 2 — Test online with a temporary server
 
-The first returns `{"ok":true}`, the second a room with a token.
+This runs the 2.0 server on a separate free address, so testing can't affect 1.2 users.
 
-**Cold starts:** on Render's free tier the server sleeps after 15 minutes without traffic and takes ~30–60 s to wake. The extension retries for up to 75 s and tells users it's waking up, but the first party of the day still waits. A paid instance (Render Starter) or a host without sleep (Fly.io, a small VPS) removes this.
+1. **Create the temporary service** *(you)*. Render → **New + → Web Service** → your `watch-pizza-party` repository.
+   - Name: `wpp-test` (the address becomes `https://wpp-test.onrender.com`, or similar — copy the real one)
+   - Branch: `v2-overhaul`
+   - Runtime: **Docker**, Dockerfile path `apps/server/Dockerfile`
+   - Instance type: **Free**
+   - Health Check Path: `/health`
+   - Environment variables: `TRUST_PROXY` = `1`, `GIPHY_API_KEY` = the new key
+   - Create it and wait until it says **Live**. Opening `https://<address>/health` in the browser should show `{"ok":true}`.
+2. **Build a test extension for that address** *(Claude)*. You get a folder `apps/extension/dist` and a zip.
+3. **Install it** *(you and a friend)*:
+   - In `chrome://extensions`, **turn off** the store version of Watch Pizza Party (otherwise both run at once).
+   - Turn on **Developer mode** (top right) → **Load unpacked** → choose the folder. Your friend unzips the zip you send them and does the same.
+4. **Test** *(you and the friend)*: go through `docs/QA_CHECKLIST.md`, especially Netflix, which couldn't be tested automatically. Tell Claude about anything odd.
 
-## 3. Package the extension for the v2 server
+When everything works, move on. Keep the temporary service until Part 4.
 
-```bash
-VITE_SERVER_URL=https://watch-pizza-party-v2.onrender.com npm run package:extension
-```
+## Part 3 — Release
 
-This builds, runs the dist guard and writes `release/watch-pizza-party-2.0.0.zip`.
+1. **Build the store package** *(Claude)*. This builds for the real address and writes `release/watch-pizza-party-2.0.0.zip`.
+2. **Submit to the Chrome Web Store** *(you)*. https://chrome.google.com/webstore/devconsole → Watch Pizza Party:
+   - **Package** → *Upload new package* → the zip.
+   - **Store listing**: paste the texts from `STORE_LISTING.md` (description, "What's new in 2.0").
+   - **Privacy**: the privacy policy changed (Giphy, room tokens, volume boost). Make sure the policy URL shows the new `PRIVACY_POLICY.md`. The URL reads from GitHub `main`, which is updated in step 4 — if the review starts before that, paste the new text somewhere public (e.g. a GitHub Gist) and use that URL.
+   - Permission justifications: copy from `STORE_LISTING.md`. **No permissions were added**, so users won't be asked anything.
+   - **Submit for review** and **untick "Publish automatically after review"** (wording varies — look for the option to publish manually / defer publishing). Review usually takes 1–3 days.
+3. **Prepare the live server while you wait** *(you)*. Render → `watch-pizza-party` → **Environment**:
+   - add `TRUST_PROXY` = `1`
+   - add `GIPHY_API_KEY` = the new key
+   - you can delete `CORS_ORIGIN` (no longer used)
+   - **Settings → Health Check Path** = `/health`
 
-No new permissions are requested, so Chrome updates existing installs silently. (The CORS setup means the new server URL does not need a host permission.)
+   Saving environment variables may restart the server, still on the old code — that's fine.
+4. **When the store says "Approved" — switch both within minutes**:
+   1. *(Claude)* Merge `v2-overhaul` into `main` and push. Render deploys 2.0 to the live address automatically (a few minutes on Docker). If the new version fails to start, Render keeps the old one running.
+   2. *(you)* When Render shows the deploy as **Live**, open `https://watch-pizza-party.onrender.com/health` → `{"ok":true}`.
+   3. *(you)* In the Web Store dashboard, click **Publish**.
+5. **Check** *(you)*: in `chrome://extensions`, remove the unpacked test copy, turn the store version back on and click **Update** (Developer mode on). Start a party and check it works.
 
-## 4. Publish
+## Part 4 — Clean up
 
-1. Chrome Web Store Developer Dashboard → the item → **Package → Upload new package** → the zip.
-2. Update the listing text from `STORE_LISTING.md` and the privacy policy URL (`PRIVACY_POLICY.md` changed in 2.0: Giphy, tokens, volume boost).
-3. Submit for review.
+*(you)*
+- Delete the temporary `wpp-test` service in Render.
+- Revoke the old Giphy key a few days later (1.2 users still use it for GIFs until they update).
 
-## 5. Retire v1
+*(Claude)*
+- Delete the merged `v2-overhaul` branch.
+- Remove old build copies from the repository (`watch-pizza-party-v1.0.2/`, `watch-pizza-party-v1.2/`, old zips) if you no longer want them there.
 
-Chrome updates installed extensions within about a day of a release going live. Keep the v1 service for **14 days** after 2.0.0 is live, then delete it and revoke the old Giphy key.
+---
 
-## Local development
+## Notes
 
-```bash
-npm install
-npm run dev:server                 # http://localhost:3005
-npm run build:extension            # default server URL baked in
-VITE_SERVER_URL=http://localhost:3005 npm run build:extension   # talk to your local server
-```
-
-Or set the server inside the extension: Landing → **Advanced** → Server.
-
-### Docker
-
-```bash
-GIPHY_API_KEY=... docker compose up --build    # http://localhost:3001
-```
+- **Cold starts**: on Render's free tier the server sleeps after 15 minutes idle, and the first party of the day waits 30–60 s. The extension handles this ("Waking up the server…"), but a paid instance (Render Starter) removes the wait.
+- **If something goes wrong after the release**: Render → `watch-pizza-party` → **Events** → *Rollback* to the previous deploy brings back the old server. The store keeps 2.0, though, so a rollback only makes sense together with fixing 2.0 quickly.
+- **Local development**: `npm run dev:server` runs the server on http://localhost:3005, and `VITE_SERVER_URL=http://localhost:3005 npm run build:extension` builds the extension against it.
