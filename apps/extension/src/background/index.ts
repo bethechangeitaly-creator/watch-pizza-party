@@ -11,6 +11,7 @@ import {
     type TimelineEntry,
 } from '../lib/messages';
 import { planViewerNavigation, shouldAcceptHostEvent } from './mediaTab';
+import { VolumeBoost } from './volume';
 import { ServerConnection } from './connection';
 import { createRoomWithRetry } from './createRoom';
 import { SessionController } from './sessionController';
@@ -210,6 +211,8 @@ const controller = new SessionController({
         }
     },
     emit: (state) => {
+        // Capture follows the media tab: changing, closing or leaving it stops the boost.
+        if (volume.capturingTabId !== null && volume.capturingTabId !== state.mediaTab?.tabId) void volume.stop();
         broadcast({ type: 'bg.session', state });
         syncContentActivation(state);
         pushBubble();
@@ -219,6 +222,8 @@ const controller = new SessionController({
     onHostRequest: (reason) => handleHostRequest(reason),
     onClock: (offset) => handleClock(offset),
 });
+
+const volume = new VolumeBoost((gain) => controller.setVolumeGain(gain));
 
 async function tabTitle(tabId: number): Promise<string> {
     try {
@@ -288,6 +293,16 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
             controller.refresh();
             return ok();
         }
+        case 'volume.start':
+            if (req.tabId !== controller.state().mediaTab?.tabId) return fail("Volume boost isn't available on this tab.");
+            await volume.start(req.tabId, req.streamId, req.gain);
+            return ok();
+        case 'volume.setGain':
+            await volume.setGain(req.gain);
+            return ok();
+        case 'volume.stop':
+            await volume.stop();
+            return ok();
         default:
             return fail('Unsupported request.');
     }

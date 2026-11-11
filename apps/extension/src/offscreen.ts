@@ -9,12 +9,14 @@
 
 let audioCtx: AudioContext | null = null;
 let gainNode: GainNode | null = null;
+let limiter: DynamicsCompressorNode | null = null;
 let sourceNode: MediaStreamAudioSourceNode | null = null;
 let mediaStream: MediaStream | null = null;
 
 function stopCapture() {
     try { sourceNode?.disconnect(); } catch { /* ignore */ }
     try { gainNode?.disconnect(); } catch { /* ignore */ }
+    try { limiter?.disconnect(); } catch { /* ignore */ }
     try {
         if (audioCtx && audioCtx.state !== 'closed') {
             void audioCtx.close();
@@ -27,6 +29,7 @@ function stopCapture() {
     }
     audioCtx = null;
     gainNode = null;
+    limiter = null;
     sourceNode = null;
     mediaStream = null;
 }
@@ -50,8 +53,17 @@ async function startCapture(streamId: string, gain: number) {
         gainNode = audioCtx.createGain();
         gainNode.gain.value = gain;
 
+        // A limiter after the gain keeps boosted audio from clipping.
+        limiter = audioCtx.createDynamicsCompressor();
+        limiter.threshold.value = -6;
+        limiter.knee.value = 6;
+        limiter.ratio.value = 20;
+        limiter.attack.value = 0.003;
+        limiter.release.value = 0.25;
+
         sourceNode.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
+        gainNode.connect(limiter);
+        limiter.connect(audioCtx.destination);
 
         console.log('[WatchParty Offscreen] Audio capture started, gain =', gain);
     } catch (err) {
