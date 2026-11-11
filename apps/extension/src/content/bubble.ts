@@ -8,29 +8,29 @@ const MARGIN = 12;
 // Dark tokens from the design spec (D7): the bubble always sits on top of video.
 const CSS = `
 :host { all: initial; }
-.wrap { position: relative; width: ${SIZE}px; height: ${SIZE}px; font: 500 12px/16px ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { position: relative; width: ${SIZE}px; height: ${SIZE}px; font: 600 12px/16px ui-rounded, "SF Pro Rounded", ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
 .open {
   all: unset; box-sizing: border-box; cursor: pointer; width: ${SIZE}px; height: ${SIZE}px; border-radius: 14px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  background: rgb(20 20 22 / 0.92); border: 1px solid rgb(255 255 255 / 0.06);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: rgb(237 237 239);
+  background: rgb(36 20 26 / 0.92); border: 1px solid rgb(255 255 255 / 0.07);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: rgb(245 233 228);
 }
-.open:focus-visible { outline: 2px solid rgb(255 106 61); outline-offset: 2px; }
+.open:focus-visible { outline: 2px solid rgb(242 107 58); outline-offset: 2px; }
 .icon { width: 24px; height: 24px; border-radius: 6px; display: block; }
-.count { display: flex; align-items: center; gap: 4px; color: rgb(139 139 147); }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: rgb(139 139 147); }
-.dot.on { background: rgb(61 214 140); }
+.count { display: flex; align-items: center; gap: 4px; color: rgb(179 154 148); }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: rgb(179 154 148); }
+.dot.on { background: rgb(110 231 164); }
 .badge {
   position: absolute; top: -6px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; font-weight: 800;
 }
-.unread { right: -6px; background: rgb(255 106 61); color: rgb(26 10 4); }
-.request { left: -6px; background: rgb(28 28 31); color: rgb(237 237 239); border: 1px solid rgb(255 255 255 / 0.06); }
+.unread { right: -6px; background: rgb(201 70 31); color: rgb(255 255 255); }
+.request { left: -6px; background: rgb(42 23 25); color: rgb(245 233 228); border: 1px solid rgb(255 255 255 / 0.07); }
 .request svg { width: 12px; height: 12px; }
 .close {
   all: unset; position: absolute; bottom: -8px; right: -8px; width: 20px; height: 20px; border-radius: 10px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; background: rgb(28 28 31); color: rgb(237 237 239);
-  border: 1px solid rgb(255 255 255 / 0.06);
+  display: flex; align-items: center; justify-content: center; background: rgb(42 23 25); color: rgb(245 233 228);
+  border: 1px solid rgb(255 255 255 / 0.07);
 }
 .close svg { width: 10px; height: 10px; }
 `;
