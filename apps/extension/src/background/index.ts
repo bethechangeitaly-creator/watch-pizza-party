@@ -251,6 +251,10 @@ const controller = new SessionController({
     onEntries: (entries, replace) => handleEntries(entries, replace),
     onHostRequest: (reason) => handleHostRequest(reason),
     onClock: (offset) => handleClock(offset),
+    // Re-arm the media tab: the host re-sends its real state (e.g. a pause made while offline).
+    onRejoined: () => {
+        if (activeContent) activateTab(activeContent.tabId, activeContent.role);
+    },
 });
 
 const volume = new VolumeBoost((gain) => controller.setVolumeGain(gain));

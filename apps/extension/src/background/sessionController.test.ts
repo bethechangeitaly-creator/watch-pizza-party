@@ -136,6 +136,19 @@ describe('SessionController', () => {
         expect(connections[0].sent.at(-1)).toMatchObject({ type: 'room.join', payload: { token: 'T'.repeat(24) } });
     });
 
+    it('reports a resumed rejoin so the media tab can re-send its state', async () => {
+        const onRejoined = vi.fn();
+        const { controller, connections } = makeController({ onRejoined });
+        await controller.join('Jol4I72BE4', 'Luca', 7, 'Video');
+        connections[0].emit(joined());
+        expect(onRejoined).not.toHaveBeenCalled();
+        connections[0].status('disconnected');
+        connections[0].status('connected');
+        connections[0].emit({ type: 'room.joined', payload: { ...(joined() as { payload: object }).payload, resumed: true } } as ServerMessage);
+        expect(onRejoined).toHaveBeenCalledTimes(1);
+        expect(controller.state().status).toBe('joined');
+    });
+
     it('forwards timelines, entries and host requests', async () => {
         const { controller, connections, deps } = makeController();
         await controller.join('Jol4I72BE4', 'Luca', 7, 'Video');

@@ -34,6 +34,8 @@ export type SessionDeps = {
     onEntries: (entries: TimelineEntry[], replace: boolean) => void;
     onHostRequest: (reason: SyncRequestReason) => void;
     onClock?: (offsetMs: number) => void;
+    /** A dropped connection came back as the same member: anything sent while offline was lost. */
+    onRejoined?: () => void;
 };
 
 const FATAL_CODES = new Set(['room_not_found', 'update_required', 'room_full']);
@@ -232,6 +234,7 @@ export class SessionController {
         switch (message.type) {
             case 'room.joined': {
                 const p = message.payload;
+                const wasReconnecting = this.s.status === 'reconnecting';
                 this.persisted = {
                     roomId: p.roomId,
                     token: p.token,
@@ -248,6 +251,7 @@ export class SessionController {
                     me: { userId: p.userId, username: p.username, avatarColor: p.avatarColor },
                     isHost: this.s.room?.hostId === p.userId,
                 });
+                if (wasReconnecting && p.resumed) this.deps.onRejoined?.();
                 return;
             }
             case 'room.state': {
