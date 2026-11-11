@@ -11,6 +11,7 @@ import {
     type TimelineEntry,
 } from '../lib/messages';
 import { isSupportedSite } from '@watch-party/shared';
+import { primeContentMatches } from '../lib/primeAccess';
 import { mediaKey, planViewerNavigation, shouldAcceptHostEvent } from './mediaTab';
 import { VolumeBoost, chromeCaptureDeps } from './volume';
 import { probeContentAlive } from '../content/alive';
@@ -178,9 +179,39 @@ async function ensureContentScript(tabId: number): Promise<void> {
         await chrome.scripting.executeScript({ target: { tabId }, files: ['player-bridge.js'], world: 'MAIN' });
         await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
     } catch {
-        // Not a YouTube/Netflix page (no host permission) — nothing to inject.
+        // Not a YouTube/Netflix page, or Prime Video without access yet — nothing to inject.
     }
 }
+
+// ── Prime Video (optional access) ────────────────────────────────────────────
+
+const PRIME_SCRIPT_ID = 'wpp-prime';
+
+/** Runs the content script on Prime Video pages once the user has allowed access (and stops if removed). */
+async function syncPrimeContentScript(): Promise<void> {
+    try {
+        const granted = (await chrome.permissions.getAll()).origins ?? [];
+        const matches = primeContentMatches(granted);
+        const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [PRIME_SCRIPT_ID] });
+        if (registered.length) await chrome.scripting.unregisterContentScripts({ ids: [PRIME_SCRIPT_ID] });
+        if (matches.length) {
+            await chrome.scripting.registerContentScripts([
+                { id: PRIME_SCRIPT_ID, matches, js: ['content.js'], runAt: 'document_idle', persistAcrossSessions: true },
+            ]);
+        }
+    } catch {
+        // Registration is retried at the next start or permission change.
+    }
+}
+
+chrome.permissions.onAdded.addListener(() => {
+    void syncPrimeContentScript().then(async () => {
+        // The party tab may already be on Prime Video: start the script there right away.
+        const tabId = controller.state().mediaTab?.tabId;
+        if (tabId !== undefined) await ensureContentScript(tabId);
+    });
+});
+chrome.permissions.onRemoved.addListener(() => void syncPrimeContentScript());
 
 function handleContentMessage(message: ContentToBackground, tabId: number): void {
     const state = controller.state();
@@ -421,6 +452,7 @@ async function bootstrap(): Promise<void> {
     const stored = area[ENTRIES_KEY] as typeof entriesCache | undefined;
     if (stored && Array.isArray(stored.entries)) entriesCache = stored;
     await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
+    await syncPrimeContentScript();
     serverUrl = await loadServerUrl(storage);
     await migrateLegacyKeys(storage);
     await controller.restore();

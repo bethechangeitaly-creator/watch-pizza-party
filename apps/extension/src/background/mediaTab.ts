@@ -9,7 +9,7 @@ export const mediaKey = (t: { platform: string; mediaId: string }) => `${t.platf
  * Decides whether the viewer's bound tab must load the host's video. It only ever touches the bound
  * tab, only loads a URL built from a validated id, and never pulls a viewer back who chose to leave:
  * - right after the tab was bound (start/join/"Use this tab"), or on an explicit Resync → navigate;
- * - when the host switches to a new video and the tab is still on YouTube/Netflix → navigate;
+ * - when the host switches to a new video and the tab is still on YouTube/Netflix/Prime Video → navigate;
  * - otherwise (same video and the viewer wandered off, or the tab is on another site) → leave it.
  */
 export function planViewerNavigation(args: {

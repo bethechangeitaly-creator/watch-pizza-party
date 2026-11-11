@@ -1,5 +1,6 @@
-import { extractMedia, type MediaRef, type PlayerSnapshot, type SupportedPlatform } from '@watch-party/shared';
+import { extractMedia, isSupportedSite, type MediaRef, type PlayerSnapshot, type SupportedPlatform } from '@watch-party/shared';
 import { callBridge } from './bridge';
+import { PrimeClock } from './primeClock';
 
 export interface PlayerAdapter {
     readonly platform: SupportedPlatform;
@@ -10,6 +11,8 @@ export interface PlayerAdapter {
     pause(): void;
     seek(sec: number): void;
     setRate(rate: number): void;
+    /** Opens the player when the page has one but it isn't showing (Prime Video detail pages). */
+    open?(): void;
 }
 
 const NETFLIX_AD_SELECTORS = [
@@ -82,9 +85,93 @@ export function createNetflixAdapter(doc: Document, loc: Location): PlayerAdapte
     };
 }
 
+// ── Prime Video ───────────────────────────────────────────────────────────────
+// Measured on primevideo.com: the episode is the <video> inside #dv-web-player (a trailer may play
+// elsewhere on the page); play/pause/currentTime work on the element (seeking needs a moment to
+// load); ads are stitched into the same element and show ".atvwebplayersdk-ad-timer-remaining-time".
+
+const PRIME_AD_TIMER = '.atvwebplayersdk-ad-timer-remaining-time';
+const CLOCK_TEXT = /^\s*(?:(\d+):)?(\d{1,2}):(\d{2})\s*$/;
+
+export function parseClock(text: string | null | undefined): number | null {
+    const m = text?.match(CLOCK_TEXT);
+    return m ? Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]) : null;
+}
+
+const isShown = (el: Element) => {
+    const html = el as HTMLElement;
+    return html.getClientRects().length > 0 && html.offsetHeight > 0;
+};
+
+export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: Element) => boolean = isShown): PlayerAdapter {
+    const clock = new PrimeClock();
+    let lastTitle: string | undefined;
+    let lastOpenAt = -Infinity;
+
+    const player = () => {
+        const root = doc.querySelector('#dv-web-player');
+        if (!root || !visible(root)) return null;
+        const videos = [...root.querySelectorAll('video')].filter((v) => Number.isFinite(v.duration) && v.duration > 0);
+        return videos.sort((a, b) => b.duration - a.duration)[0] ?? null;
+    };
+    const elapsedLabel = () => {
+        const root = doc.querySelector('#dv-web-player');
+        if (!root) return null;
+        for (const el of root.querySelectorAll('span, div')) {
+            if (el.children.length > 0 || el.matches(PRIME_AD_TIMER)) continue;
+            const sec = parseClock(el.textContent);
+            if (sec !== null) return sec; // the elapsed time comes first, the remaining time after it
+        }
+        return null;
+    };
+    const read = () => {
+        const v = player();
+        if (!v) return null;
+        const ad = doc.querySelector(PRIME_AD_TIMER);
+        const adRemainingSec = ad && visible(ad) ? parseClock(ad.textContent) : null;
+        clock.observe({
+            streamSec: v.currentTime,
+            durationSec: v.duration,
+            adRemainingSec,
+            labelElapsedSec: adRemainingSec === null ? elapsedLabel() : null,
+        });
+        const title = doc.querySelector('.atvwebplayersdk-title-text')?.textContent?.trim();
+        const episode = (doc.querySelector('.atvwebplayersdk-subtitle-text') ?? doc.querySelector('.atvwebplayersdk-episode-info'))?.textContent?.trim();
+        if (title) lastTitle = episode ? `${title} · ${episode}` : title;
+        return { v, inAd: adRemainingSec !== null };
+    };
+
+    return {
+        platform: 'prime',
+        media: () => onlyVideoOf(extractMedia(loc.href), 'prime'),
+        title: () => lastTitle ?? (doc.title.replace(/^Prime Video:\s*/i, '').trim() || undefined),
+        snapshot: () => {
+            const r = read();
+            if (!r) return null;
+            const { v } = r;
+            return { positionSec: clock.toContent(v.currentTime), paused: v.paused, rate: 1, buffering: !v.paused && v.readyState < 3, inAd: r.inAd };
+        },
+        play: () => { void player()?.play().catch(() => {}); },
+        pause: () => { player()?.pause(); },
+        seek: (sec) => {
+            const v = player();
+            if (v) v.currentTime = clock.toStream(sec);
+        },
+        setRate: () => {
+            // Prime profile never nudges the rate.
+        },
+        open: () => {
+            if (player() || Date.now() - lastOpenAt < 5000) return;
+            lastOpenAt = Date.now();
+            doc.querySelector<HTMLElement>('[data-testid="dp-atf-play-button"]')?.click();
+        },
+    };
+}
+
 export function adapterFor(loc: Location, doc: Document): PlayerAdapter | null {
     const host = loc.hostname.toLowerCase();
     if (host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtu.be') return createYouTubeAdapter(doc, loc);
     if (host === 'netflix.com' || host.endsWith('.netflix.com')) return createNetflixAdapter(doc, loc);
+    if (isSupportedSite(loc.href) && !host.includes('youtube') && !host.includes('netflix')) return createPrimeAdapter(doc, loc);
     return null;
 }

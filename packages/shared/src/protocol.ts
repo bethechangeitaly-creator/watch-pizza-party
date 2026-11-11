@@ -17,10 +17,10 @@ export const LIMITS = {
     historySize: 100,
 } as const;
 
-const mediaRefCheck = (value: { platform: 'youtube' | 'netflix'; mediaId: string }) => isValidMediaRef(value);
+const mediaRefCheck = (value: { platform: 'youtube' | 'netflix' | 'prime'; mediaId: string }) => isValidMediaRef(value);
 const MEDIA_ERROR = { message: 'invalid media id' };
 
-export const SupportedPlatformSchema = z.enum(['youtube', 'netflix']);
+export const SupportedPlatformSchema = z.enum(['youtube', 'netflix', 'prime']);
 export const ViewerSyncStateSchema = z.enum(['synced', 'drifting', 'buffering', 'ad', 'paused']);
 export type ViewerSyncState = z.infer<typeof ViewerSyncStateSchema>;
 export const UserStatusSchema = z.enum(['synced', 'drifting', 'buffering', 'ad', 'paused', 'reconnecting', 'unknown']);

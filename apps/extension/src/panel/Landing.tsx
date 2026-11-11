@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { BookOpen, Shuffle } from 'lucide-react';
-import { extractMedia, generateRandomName, isSupportedSite, sanitizeUsername } from '@watch-party/shared';
+import { extractMedia, generateRandomName, isPrimeVideoSite, isSupportedSite, sanitizeUsername } from '@watch-party/shared';
 import type { PanelRequest, PanelResponse, PublicSession } from '../lib/messages';
 import type { ActiveTab } from './activeTab';
 import { parseRoomCode } from './roomCode';
 import { Button } from './ui/Button';
 import { TextField } from './ui/TextField';
 import type { ServerStatus } from './serverStatus';
+import { requestPrimeAccess } from '../lib/primeAccess';
 
+const PRIME_REFUSED = 'Watch Pizza Party needs access to Prime Video to keep it in sync. Try again and choose Allow.';
 const WAKING_TITLE = '⏳ Server is waking up...';
 const WAKING_NOTE = 'The Pizza Server starts on-demand. Wait ~30 seconds — your party will start by itself.';
 const OFFLINE_TITLE = '🔴 Server appears offline';
@@ -27,6 +29,7 @@ export function Landing({
     onAbout,
     serverStatus,
     onRetryServer,
+    primeAllowed,
 }: {
     session: PublicSession | null;
     send: (r: PanelRequest) => Promise<PanelResponse>;
@@ -34,7 +37,9 @@ export function Landing({
     onAbout: () => void;
     serverStatus: ServerStatus;
     onRetryServer: () => void;
+    primeAllowed: boolean;
 }) {
+    const [accessError, setAccessError] = useState<string | null>(null);
     const [mode, setMode] = useState<'host' | 'join'>('host');
     const [name, setName] = useState(() => generateRandomName().name);
     const [code, setCode] = useState('');
@@ -49,10 +54,20 @@ export function Landing({
     const username = sanitizeUsername(name) ?? generateRandomName().name;
     const sessionError = status === 'error' ? session?.error?.message ?? null : null;
 
+    /** On a Prime Video tab, ask for Prime Video access first (from this click), then go on. */
+    const withPrimeAccess = (go: () => void) => {
+        setAccessError(null);
+        if (primeAllowed || !isPrimeVideoSite(activeTab?.url)) return go();
+        void requestPrimeAccess(activeTab?.url).then((ok) => (ok ? go() : setAccessError(PRIME_REFUSED)));
+    };
+
     const start = () => {
         if (!activeTab) return;
-        setLastAction('create');
-        void send({ type: 'session.create', username, tabId: activeTab.tabId });
+        const tabId = activeTab.tabId;
+        withPrimeAccess(() => {
+            setLastAction('create');
+            void send({ type: 'session.create', username, tabId });
+        });
     };
 
     const join = () => {
@@ -66,8 +81,11 @@ export function Landing({
             return;
         }
         setCodeError(null);
-        setLastAction('join');
-        void send({ type: 'session.join', roomId, username, tabId: activeTab.tabId });
+        const tabId = activeTab.tabId;
+        withPrimeAccess(() => {
+            setLastAction('join');
+            void send({ type: 'session.join', roomId, username, tabId });
+        });
     };
 
     const saveServer = async (url: string) => {
@@ -158,9 +176,11 @@ export function Landing({
                     {media ? (
                         <p className="truncate text-meta text-muted">Using: {activeTab?.title || 'this video'}</p>
                     ) : (
-                        <p className="text-meta text-muted">You can open a YouTube or Netflix video after starting.</p>
+                        <p className="text-meta text-muted">You can open a video on YouTube, Netflix or Prime Video after starting.</p>
                     )}
-                    {sessionError && lastAction !== 'join' && <p role="alert" className="rounded-control bg-bad px-3 py-2 text-meta text-bad-fg">{sessionError}</p>}
+                    {(accessError ?? (lastAction !== 'join' ? sessionError : null)) && (
+                        <p role="alert" className="rounded-control bg-bad px-3 py-2 text-meta text-bad-fg">{accessError ?? sessionError}</p>
+                    )}
                 </section>
             ) : (
                 <section className="flex flex-col gap-2">
@@ -186,6 +206,7 @@ export function Landing({
                     {activeTab && !isSupportedSite(activeTab.url) && !codeError && (
                         <p className="text-meta text-muted">The video will open in a new tab.</p>
                     )}
+                    {accessError && <p role="alert" className="rounded-control bg-bad px-3 py-2 text-meta text-bad-fg">{accessError}</p>}
                     {sessionError && lastAction === 'join' && <p role="alert" className="rounded-control bg-bad px-3 py-2 text-meta text-bad-fg">{sessionError}</p>}
                 </section>
             )}

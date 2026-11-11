@@ -26,6 +26,12 @@ describe('ClientMessageSchema', () => {
 });
 
 describe('HostUpdateSchema', () => {
+    it('accepts Prime Video episodes and rejects bad Prime ids', () => {
+        expect(HostUpdateSchema.safeParse({ ...hostUpdate, platform: 'prime', mediaId: '0L8YQ591BLZ0VTAHS228HDGRIP' }).success).toBe(true);
+        expect(HostUpdateSchema.safeParse({ ...hostUpdate, platform: 'prime', mediaId: 'B0DFGH1234' }).success).toBe(true);
+        expect(HostUpdateSchema.safeParse({ ...hostUpdate, platform: 'prime', mediaId: '../detail' }).success).toBe(false);
+    });
+
     it('has no url/seq fields and validates media ids', () => {
         expect(HostUpdateSchema.safeParse(hostUpdate).success).toBe(true);
         expect(HostUpdateSchema.safeParse({ ...hostUpdate, mediaId: '../../x' }).success).toBe(false);

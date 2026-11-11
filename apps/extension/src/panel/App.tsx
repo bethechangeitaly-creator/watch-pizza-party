@@ -9,6 +9,7 @@ import { SECTIONS_KEY, mergeSections, type SectionId, type SectionState } from '
 import { applyTheme, loadThemePref, saveThemePref, type ThemePref } from './theme';
 import { useServerStatus } from './serverStatus';
 import { unlockAudio } from './sounds';
+import { usePrimeAccess } from './usePrimeAccess';
 import { useSession } from './useSession';
 
 const SOUNDS_KEY = 'wpp.sounds';
@@ -85,6 +86,7 @@ export function App() {
     };
 
     const server = useServerStatus(session?.serverUrl);
+    const primeAllowed = usePrimeAccess();
 
     const changeTheme = (pref: ThemePref) => {
         setThemePref(pref);
@@ -117,6 +119,7 @@ export function App() {
                 onToggleSection={toggleSection}
                 donateDue={donateDue}
                 onDonateDismiss={dismissDonate}
+                primeAllowed={primeAllowed}
             />
         );
     }
@@ -130,6 +133,7 @@ export function App() {
                 onAbout={() => setAboutOpen(true)}
                 serverStatus={server.status}
                 onRetryServer={server.retry}
+                primeAllowed={primeAllowed}
             />
             <AboutSheet open={aboutOpen} onClose={() => setAboutOpen(false)} version={version} />
         </>

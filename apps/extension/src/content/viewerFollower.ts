@@ -40,7 +40,10 @@ export class ViewerFollower {
         const media = this.adapter.media();
         if (!media || media.platform !== t.platform || media.mediaId !== t.mediaId) return;
         const player = this.adapter.snapshot();
-        if (!player) return;
+        if (!player) {
+            this.adapter.open?.(); // right page, player not showing yet (Prime Video detail page)
+            return;
+        }
 
         const now = this.now();
         const decision = decideCorrection({

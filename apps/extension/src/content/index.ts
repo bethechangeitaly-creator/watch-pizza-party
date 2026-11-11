@@ -43,7 +43,7 @@ const TICK_MS = 250;
         } else {
             follower = new ViewerFollower(adapter, (status) => send({ type: 'content.viewerStatus', ...status }), Date.now);
         }
-        // Only an active party runs a timer; every other YouTube/Netflix tab stays idle.
+        // Only an active party runs a timer; every other YouTube/Netflix/Prime Video tab stays idle.
         timer = setInterval(() => {
             reporter?.tick();
             follower?.tick();

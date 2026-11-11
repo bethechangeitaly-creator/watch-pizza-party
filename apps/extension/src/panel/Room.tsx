@@ -7,6 +7,7 @@ import { Chat } from './Chat';
 import { DONATE_URL } from './donate';
 import { inviteText, mailtoUrl, whatsappUrl } from './invite';
 import { nowPlaying } from './nowPlaying';
+import { requestPrimeAccess } from '../lib/primeAccess';
 import { RoomHeader } from './RoomHeader';
 import type { ActiveTab } from './activeTab';
 import type { SectionId, SectionState } from './sections';
@@ -59,6 +60,7 @@ export type RoomProps = {
     onToggleSection: (id: SectionId) => void;
     donateDue: boolean;
     onDonateDismiss: () => void;
+    primeAllowed: boolean;
 };
 
 function HostAvatar({ name, color, host, size }: { name: string; color: string; host: boolean; size?: 24 | 32 }) {
@@ -88,7 +90,14 @@ export function Room(props: RoomProps) {
     if (!room) return null;
 
     const me = session.me;
-    const status = statusLine(session, props.activeTab);
+    const status = statusLine(session, props.activeTab, props.primeAllowed);
+    const runStatusAction = (action: NonNullable<StatusLine['action']>) => {
+        if (!action.needsPrime) return void send(action.request);
+        // Asked straight from the click, as Chrome requires; then do what the button says.
+        void requestPrimeAccess(props.activeTab?.url).then((ok) => {
+            if (ok) void send(action.request);
+        });
+    };
     const playing = nowPlaying(session);
     const invite = inviteText(room.id, props.extensionId);
 
@@ -162,13 +171,13 @@ export function Room(props: RoomProps) {
                     <span aria-hidden="true">●</span>
                     <span className="flex-1 truncate text-body font-bold">{status.text}</span>
                     {status.action && (
-                        <Button size="sm" variant="primary" onClick={() => void send(status.action!.request)}>{status.action.label}</Button>
+                        <Button size="sm" variant="primary" onClick={() => runStatusAction(status.action!)}>{status.action.label}</Button>
                     )}
                 </div>
 
                 <section aria-label="Now Playing" className="flex items-center gap-3 rounded-card bg-surface px-3 py-2.5">
                     {playing.platform ? (
-                        <span className={`shrink-0 rounded-control px-2 py-1 text-meta font-bold ${playing.platform === 'YouTube' ? 'bg-bad text-bad-fg' : 'bg-cheese text-cheese-fg'}`}>
+                        <span className={`shrink-0 rounded-control px-2 py-1 text-meta font-bold ${playing.platform === 'YouTube' ? 'bg-bad text-bad-fg' : playing.platform === 'Prime Video' ? 'bg-invite text-invite-fg' : 'bg-cheese text-cheese-fg'}`}>
                             ▶ {playing.platform}
                         </span>
                     ) : (

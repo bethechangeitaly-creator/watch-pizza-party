@@ -4,6 +4,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PanelRequest, PanelResponse, PublicSession } from '../lib/messages';
 import { Landing } from './Landing';
+import { requestPrimeAccess } from '../lib/primeAccess';
+
+vi.mock('../lib/primeAccess', () => ({ requestPrimeAccess: vi.fn(async () => true) }));
 import type { ServerStatus } from './serverStatus';
 
 const idle: PublicSession = {
@@ -13,7 +16,7 @@ const idle: PublicSession = {
 
 function props(over: Partial<Parameters<typeof Landing>[0]> = {}) {
     const send = vi.fn(async (_r: PanelRequest): Promise<PanelResponse> => ({ ok: true, state: idle }));
-    return { session: idle, send, activeTab: null, onAbout: vi.fn(), serverStatus: 'online' as ServerStatus, onRetryServer: vi.fn(), ...over };
+    return { session: idle, send, activeTab: null, onAbout: vi.fn(), serverStatus: 'online' as ServerStatus, onRetryServer: vi.fn(), primeAllowed: false, ...over };
 }
 
 describe('Landing', () => {
@@ -39,7 +42,7 @@ describe('Landing', () => {
         const user = userEvent.setup();
         const p = props({ activeTab: { tabId: 1, url: 'https://www.youtube.com/' } });
         render(<Landing {...p} />);
-        expect(screen.getByText('You can open a YouTube or Netflix video after starting.')).toBeInTheDocument();
+        expect(screen.getByText('You can open a video on YouTube, Netflix or Prime Video after starting.')).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: '🍕 Create a Pizza Party' }));
         expect(p.send).toHaveBeenCalledWith({ type: 'session.create', username: expect.any(String), tabId: 1 });
     });
@@ -94,5 +97,25 @@ describe('Landing', () => {
     it('shows the session error', () => {
         render(<Landing {...props({ session: { ...idle, status: 'error', error: { code: 'room_not_found', message: 'Room not found. Check the code.' } } })} />);
         expect(screen.getByText('Room not found. Check the code.')).toBeInTheDocument();
+    });
+
+    it('on a Prime Video tab it asks for Prime Video access, then starts the party', async () => {
+        const user = userEvent.setup();
+        const url = 'https://www.primevideo.com/detail/0L8YQ591BLZ0VTAHS228HDGRIP';
+        const p = props({ activeTab: { tabId: 5, url } });
+        render(<Landing {...p} />);
+        await user.click(screen.getByRole('button', { name: '🍕 Create a Pizza Party' }));
+        expect(requestPrimeAccess).toHaveBeenCalledWith(url);
+        expect(p.send).toHaveBeenCalledWith({ type: 'session.create', username: expect.any(String), tabId: 5 });
+    });
+
+    it('if Prime Video access is refused it explains instead of starting', async () => {
+        vi.mocked(requestPrimeAccess).mockResolvedValueOnce(false);
+        const user = userEvent.setup();
+        const p = props({ activeTab: { tabId: 5, url: 'https://www.primevideo.com/detail/0L8YQ591BLZ0VTAHS228HDGRIP' } });
+        render(<Landing {...p} />);
+        await user.click(screen.getByRole('button', { name: '🍕 Create a Pizza Party' }));
+        expect(p.send).not.toHaveBeenCalled();
+        expect(screen.getByRole('alert')).toHaveTextContent('Watch Pizza Party needs access to Prime Video');
     });
 });

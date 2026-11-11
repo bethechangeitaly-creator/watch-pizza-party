@@ -4,7 +4,7 @@ import { DONATE_URL } from './donate';
 import { Button } from './ui/Button';
 import { Sheet } from './ui/Sheet';
 
-const STEPS = ['Open Netflix or YouTube', 'Click the extension icon', 'Host or Join a party', 'Share the room code with friends'];
+const STEPS = ['Open Netflix, YouTube or Prime Video', 'Click the extension icon', 'Host or Join a party', 'Share the room code with friends'];
 
 const TIPS = [
     'Use one browser tab at a time to avoid sync confusion',

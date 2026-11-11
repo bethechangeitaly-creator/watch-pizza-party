@@ -35,6 +35,12 @@ for (const h of manifest.host_permissions ?? []) {
     if (!BASELINE_HOSTS.includes(h)) problems.push(`new host permission not allowed: ${h}`);
 }
 
+// 3b. Prime Video is optional access only (asked on first use), never a manifest content script.
+for (const h of manifest.optional_host_permissions ?? []) {
+    if (!/^https:\/\/\*\.(primevideo\.com|amazon\.[a-z.]+)\/\*$/.test(h)) problems.push(`unexpected optional host permission: ${h}`);
+}
+if (/amazon|primevideo/.test(JSON.stringify(manifest.content_scripts ?? []))) problems.push('Prime Video must not be in manifest content_scripts');
+
 // 4. Never steal focus by activating a tab.
 for (const file of walk(src)) {
     if (!/\.(ts|tsx)$/.test(file)) continue;

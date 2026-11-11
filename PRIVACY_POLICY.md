@@ -4,13 +4,13 @@
 
 ## Overview
 
-Watch Pizza Party is a Chrome extension that lets friends watch YouTube and Netflix in sync, with a chat on the side. This policy explains what data the extension and its server handle, and for how long.
+Watch Pizza Party is a Chrome extension that lets friends watch YouTube, Netflix and Prime Video in sync, with a chat on the side. This policy explains what data the extension and its server handle, and for how long.
 
 ## What we handle
 
 1. **Your display name** — a random pizza-themed name (e.g. "Basil Burrata") or one you type. It is shown to the people in your room and is not linked to your identity.
 2. **A room token** — a random code the server gives you when you join, so you can reconnect as the same person. It is stored in your browser and deleted after 8 hours or when you leave the party.
-3. **Room data** — the room code, who is in the room, and the playback state of the video being watched (which YouTube or Netflix video, its position, playing or paused). This is what keeps everyone in sync.
+3. **Room data** — the room code, who is in the room, and the playback state of the video being watched (which YouTube, Netflix or Prime Video video, its position, playing or paused). This is what keeps everyone in sync.
 4. **Chat messages** — the last 100 messages of each room, so people who join later can catch up.
 5. **Your IP address** — seen by our server as part of any internet connection, and used only in memory to limit abuse (e.g. too many rooms created). It is not stored.
 
@@ -18,7 +18,7 @@ Watch Pizza Party is a Chrome extension that lets friends watch YouTube and Netf
 
 - Your real name, email address or any account
 - Your browsing history or what you watch outside a party
-- Your YouTube or Netflix credentials
+- Your YouTube, Netflix or Amazon credentials
 - Payment information
 - Analytics, tracking or advertising identifiers
 
@@ -36,8 +36,8 @@ The Pizza Server runs on Render.com. Connections are encrypted (HTTPS/WSS).
 ### Giphy
 When you search for a GIF, your search text goes to **our server**, which asks Giphy for results — Giphy does not see your IP address for searches. The GIF images themselves are then loaded directly from Giphy's servers, so Giphy can see the IP address of everyone who sees a GIF in the chat, as with any image on the web. If the server has no Giphy key, GIF search is turned off. Giphy's privacy policy: https://support.giphy.com/hc/en-us/articles/360032872931
 
-### YouTube and Netflix
-The extension reads and controls the video player on YouTube and Netflix pages (play, pause, seek, position) and only on the tab you chose for the party. It does not read your account or your viewing history.
+### YouTube, Netflix and Prime Video
+The extension reads and controls the video player on YouTube, Netflix and Prime Video pages (play, pause, seek, position) and only on the tab you chose for the party. Access to Prime Video (primevideo.com and Amazon's video pages) is optional: Chrome asks you the first time you use it, and you can remove it at any time. It does not read your account or your viewing history.
 
 ## Volume boost
 

@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Watch Pizza Party is a Chrome extension (Manifest V3) plus a Node.js server for synchronized YouTube and Netflix watch parties with chat. Version 2 uses protocol v2: server-issued identity tokens, a server-owned playback timeline, and clock-synced correction on viewers.
+Watch Pizza Party is a Chrome extension (Manifest V3) plus a Node.js server for synchronized YouTube, Netflix and Prime Video watch parties with chat. Version 2 uses protocol v2: server-issued identity tokens, a server-owned playback timeline, and clock-synced correction on viewers.
 
-**What the extension does to pages (be accurate about this — it matters for store review):** a MAIN-world script (`player-bridge.js`) calls the YouTube and Netflix player APIs for play/pause/seek; the content script reads the `<video>` element and adds a floating bubble to the page. It does not touch DRM/EME, does not download or capture video, and only captures tab audio when the user turns on volume boost.
+**What the extension does to pages (be accurate about this — it matters for store review):** a MAIN-world script (`player-bridge.js`) calls the YouTube and Netflix player APIs for play/pause/seek; on Prime Video the content script plays, pauses and seeks the `<video>` element directly (Amazon access is optional, asked on first use); the content script reads the `<video>` element and adds a floating bubble to the page. It does not touch DRM/EME, does not download or capture video, and only captures tab audio when the user turns on volume boost.
 
 ## Monorepo Structure
 

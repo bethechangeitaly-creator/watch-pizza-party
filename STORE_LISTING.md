@@ -13,7 +13,7 @@ Detailed Description (16,000 characters max)
 
 🍕 Watch Together, Stay Connected
 
-Watch Pizza Party brings people together for synchronized Netflix and YouTube watch parties. Whether you're watching with friends across the country or someone special on the other side of the world, everyone stays in sync automatically.
+Watch Pizza Party brings people together for synchronized Netflix, YouTube and Prime Video watch parties. Whether you're watching with friends across the country or someone special on the other side of the world, everyone stays in sync automatically.
 
 ✨ Key Features
 
@@ -28,7 +28,7 @@ Watch Pizza Party brings people together for synchronized Netflix and YouTube wa
 
 🚀 How It Works
 
-1. Open a Netflix or YouTube video
+1. Open a Netflix, YouTube or Prime Video video
 2. Click the Watch Pizza Party icon — the side panel opens
 3. Start a party (or join one with a room code)
 4. Share the code with friends
@@ -109,7 +109,7 @@ Privacy Policy URL
 https://raw.githubusercontent.com/bethechangeitaly-creator/watch-pizza-party/main/PRIVACY_POLICY.md
 
 Single Purpose Description (for Chrome Web Store Review)
-This extension enables synchronized watch parties on Netflix and YouTube with real-time chat, so friends in different places can watch the same video at the same moment.
+This extension enables synchronized watch parties on Netflix, YouTube and Prime Video with real-time chat, so friends in different places can watch the same video at the same moment.
 
 Justification for Permissions
 
@@ -134,6 +134,10 @@ Required Permissions:
 5. Host Permissions (netflix.com, youtube.com, youtu.be)
    - Purpose: Access video player elements for synchronization
    - Justification: Extension only works on these streaming sites
+
+   Optional host permissions (primevideo.com and Amazon stores' /gp/video pages)
+   - Purpose: Sync Prime Video the same way (play, pause, seek, position)
+   - Justification: Requested only when the user starts, joins or follows a party on Prime Video; never requested otherwise, and the content script runs only on video pages of the granted sites
 
 6. tabCapture
    - Purpose: Volume boost

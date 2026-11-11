@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Watch Pizza Party",
     "version": "2.0.0",
-    "description": "Synchronized watch parties for Netflix and YouTube with real-time chat.",
+    "description": "Synchronized watch parties for Netflix, YouTube and Prime Video with real-time chat.",
     "incognito": "split",
     "action": {
         "default_popup": "popup.html",
@@ -35,6 +35,25 @@
         "https://*.youtube.com/*",
         "https://youtu.be/*",
         "https://watch-pizza-party.onrender.com/*"
+    ],
+    "optional_host_permissions": [
+        "https://*.primevideo.com/*",
+        "https://*.amazon.com/*",
+        "https://*.amazon.co.uk/*",
+        "https://*.amazon.de/*",
+        "https://*.amazon.it/*",
+        "https://*.amazon.fr/*",
+        "https://*.amazon.es/*",
+        "https://*.amazon.ca/*",
+        "https://*.amazon.co.jp/*",
+        "https://*.amazon.com.au/*",
+        "https://*.amazon.in/*",
+        "https://*.amazon.com.br/*",
+        "https://*.amazon.com.mx/*",
+        "https://*.amazon.nl/*",
+        "https://*.amazon.se/*",
+        "https://*.amazon.pl/*",
+        "https://*.amazon.com.be/*"
     ],
     "content_scripts": [
         {

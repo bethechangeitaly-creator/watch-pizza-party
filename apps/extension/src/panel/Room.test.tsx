@@ -6,6 +6,9 @@ import type { PanelRequest, PanelResponse } from '../lib/messages';
 import { sessionWith } from '../test/sessions';
 import { DONATE_URL } from './donate';
 import { Room } from './Room';
+import { requestPrimeAccess } from '../lib/primeAccess';
+
+vi.mock('../lib/primeAccess', () => ({ requestPrimeAccess: vi.fn(async () => true) }));
 import { defaultSections, type SectionState } from './sections';
 
 function props(over: Partial<Parameters<typeof Room>[0]> = {}) {
@@ -15,7 +18,7 @@ function props(over: Partial<Parameters<typeof Room>[0]> = {}) {
         session, entries: [], send, activeTab: { tabId: 1, url: 'https://example.com/' }, extensionId: 'abc', version: '2.0.0',
         themePref: 'dark' as const, onThemeChange: vi.fn(), soundsEnabled: false, onSoundsChange: vi.fn(), gifsAvailable: false,
         sections: defaultSections(session.isHost ? 'host' : 'viewer') as SectionState, onToggleSection: vi.fn(),
-        donateDue: false, onDonateDismiss: vi.fn(),
+        donateDue: false, onDonateDismiss: vi.fn(), primeAllowed: true,
         ...over,
     };
 }
@@ -161,6 +164,17 @@ describe('Room', () => {
         const card = screen.getByRole('region', { name: 'Now Playing' });
         expect(card).toHaveTextContent('YouTube');
         expect(card).toHaveTextContent('Song');
+    });
+
+    it('a viewer allows Prime Video from the status button, then resyncs', async () => {
+        const user = userEvent.setup();
+        const session = sessionWith({ playing: true, mySync: 'synced' });
+        session.room!.timeline = { ...session.room!.timeline!, platform: 'prime', mediaId: '0L8YQ591BLZ0VTAHS228HDGRIP' };
+        const p = props({ session, primeAllowed: false });
+        render(<Room {...p} />);
+        await user.click(screen.getByRole('button', { name: 'Allow Prime Video' }));
+        expect(requestPrimeAccess).toHaveBeenCalled();
+        expect(p.send).toHaveBeenCalledWith({ type: 'sync.resyncMe' });
     });
 
     it('status action sends its request', async () => {
