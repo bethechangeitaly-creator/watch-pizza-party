@@ -96,6 +96,7 @@ const PRIME_AD_TIMER = '.atvwebplayersdk-ad-timer-remaining-time';
 const PRIME_STEP_SEC = 10; // one ←/→ press on Prime's player
 const PRIME_PRESS_MS = 300; // presses closer than this collapse into one
 const PRIME_SETTLE_MS = 1500;
+const PRIME_DIRECT_SETTLE_MS = 800; // loading after Prime's own jump (measured ~0.5 s)
 const CLOCK_TEXT = /^\s*(?:(\d+):)?(\d{1,2}):(\d{2})\s*$/;
 
 export function parseClock(text: string | null | undefined): number | null {
@@ -158,6 +159,13 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
         }
         return null;
     };
+    /** Prime's own exact episode time (its seek bar store, via the page bridge), when available. */
+    const exactSeconds = () => {
+        const r = callBridge('prime.state');
+        const t = r?.handled ? r.payload?.timeSeconds : undefined;
+        return typeof t === 'number' && Number.isFinite(t) ? t : null;
+    };
+
     const read = () => {
         const v = player();
         if (!v) return null;
@@ -190,7 +198,7 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
             const { v } = r;
             const jumping = Date.now() < jumpingUntil;
             if (!jumping) uncover();
-            return { positionSec: clock.toContent(v.currentTime), paused: v.paused, rate: 1, buffering: jumping || (!v.paused && v.readyState < 3), inAd: r.inAd };
+            return { positionSec: exactSeconds() ?? clock.toContent(v.currentTime), paused: v.paused, rate: 1, buffering: jumping || (!v.paused && v.readyState < 3), inAd: r.inAd };
         },
         play: () => { void player()?.play().catch(() => {}); },
         pause: () => { player()?.pause(); },
@@ -200,6 +208,13 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
             if (!v || !root) return;
             if (pressTimer) clearTimeout(pressTimer);
             pressTimer = null;
+            // Best: Prime's own one-step jump in episode time (what its progress bar does).
+            if (callBridge('prime.seek', { timeSeconds: sec })?.handled) {
+                uncover();
+                jumpingUntil = Date.now() + PRIME_DIRECT_SETTLE_MS;
+                return;
+            }
+            // Fallback if Prime's player changes: its ←/→ keys, 10 s per press.
             const delta = sec - clock.toContent(v.currentTime);
             // Measured: setting currentTime far away can leave Prime's player loading forever and then
             // "Video not available". Small nudges are fine; big jumps go through Prime's own arrow keys,
@@ -228,7 +243,7 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
         setRate: () => {
             // Prime profile never nudges the rate.
         },
-        needsUserClick: () => !clock.calibrated,
+        needsUserClick: () => exactSeconds() === null && !clock.calibrated,
         open: () => {
             if (player() || Date.now() - lastOpenAt < 5000) return;
             lastOpenAt = Date.now();

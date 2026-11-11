@@ -2,6 +2,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPrimeAdapter } from './adapters';
 
+/** Fake MAIN-world bridge answering like player-bridge.js does on primevideo.com. */
+function fakePrimeBridge(positionSec: number | null) {
+    const seeks: number[] = [];
+    const onRequest = (event: Event) => {
+        const d = (event as CustomEvent).detail;
+        let handled = false;
+        let payload: Record<string, unknown> | null = null;
+        if (d.command === 'prime.state' && positionSec !== null) { handled = true; payload = { timeSeconds: positionSec, durationSeconds: 3317 }; }
+        if (d.command === 'prime.seek' && positionSec !== null) { handled = true; seeks.push(d.payload.timeSeconds); }
+        window.dispatchEvent(new CustomEvent('watchpizzaparty:bridge:response', {
+            detail: { namespace: 'watchpizzaparty-bridge-v1', direction: 'to-content', id: d.id, handled, payload },
+        }));
+    };
+    window.addEventListener('watchpizzaparty:bridge:request', onRequest);
+    return { seeks, stop: () => window.removeEventListener('watchpizzaparty:bridge:request', onRequest) };
+}
+
 const PAGE = 'https://www.primevideo.com/detail/0L8YQ591BLZ0VTAHS228HDGRIP';
 const loc = (href = PAGE) => new URL(href) as unknown as Location;
 const always = () => true;
@@ -163,5 +180,32 @@ describe('Prime Video adapter', () => {
         Object.defineProperty(document.querySelector('#episode')!, 'duration', { get: () => 4419 });
         prime.snapshot();
         expect(prime.title() ?? '').not.toMatch(/Carrie/);
+    });
+
+    describe('with Prime’s own player store (via the page bridge)', () => {
+        it('uses Prime’s exact episode time — no calibration click needed', () => {
+            const p = page();
+            const bridge = fakePrimeBridge(600);
+            const prime = createPrimeAdapter(document, loc(), always);
+            p.episode.currentTime = 1864; // video clock incl. unseen ads
+            expect(prime.snapshot()!.positionSec).toBe(600);
+            expect(prime.needsUserClick!()).toBe(false);
+            bridge.stop();
+        });
+
+        it('big jumps are one step through Prime, no arrow keys, no cover', () => {
+            const p = page();
+            const bridge = fakePrimeBridge(600);
+            const prime = createPrimeAdapter(document, loc(), always);
+            const keys: string[] = [];
+            document.querySelector('#dv-web-player')!.addEventListener('keydown', (e) => keys.push((e as KeyboardEvent).key));
+            prime.snapshot();
+            prime.seek(1800);
+            expect(bridge.seeks).toEqual([1800]);
+            expect(keys).toEqual([]);
+            expect(document.querySelector('[data-wpp-catching-up]')).toBeNull();
+            expect(p.episode.paused).toBe(false);
+            bridge.stop();
+        });
     });
 });

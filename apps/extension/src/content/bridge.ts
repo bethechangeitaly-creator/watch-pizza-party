@@ -7,7 +7,8 @@ const RESPONSE_EVENT = 'watchpizzaparty:bridge:response';
 
 export type BridgeCommand =
     | 'youtube.play' | 'youtube.pause' | 'youtube.seek' | 'youtube.rate'
-    | 'netflix.state' | 'netflix.play' | 'netflix.pause' | 'netflix.seek';
+    | 'netflix.state' | 'netflix.play' | 'netflix.pause' | 'netflix.seek'
+    | 'prime.state' | 'prime.seek';
 
 type BridgeResponse = { namespace?: string; direction?: string; id?: number; handled?: boolean; payload?: Record<string, unknown> | null };
 

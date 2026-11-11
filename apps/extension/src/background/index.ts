@@ -190,16 +190,20 @@ async function ensureContentScript(tabId: number): Promise<void> {
 // ── Prime Video (optional access) ────────────────────────────────────────────
 
 const PRIME_SCRIPT_ID = 'wpp-prime';
+const PRIME_BRIDGE_ID = 'wpp-prime-bridge';
 
 /** Runs the content script on Prime Video pages once the user has allowed access (and stops if removed). */
 async function syncPrimeContentScript(): Promise<void> {
     try {
         const granted = (await chrome.permissions.getAll()).origins ?? [];
         const matches = primeContentMatches(granted);
-        const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [PRIME_SCRIPT_ID] });
-        if (registered.length) await chrome.scripting.unregisterContentScripts({ ids: [PRIME_SCRIPT_ID] });
+        const ids = [PRIME_SCRIPT_ID, PRIME_BRIDGE_ID];
+        const registered = await chrome.scripting.getRegisteredContentScripts({ ids });
+        if (registered.length) await chrome.scripting.unregisterContentScripts({ ids: registered.map((r) => r.id) });
         if (matches.length) {
             await chrome.scripting.registerContentScripts([
+                // The page bridge reads/jumps Prime's own player (MAIN world), like on YouTube and Netflix.
+                { id: PRIME_BRIDGE_ID, matches, js: ['player-bridge.js'], world: 'MAIN', runAt: 'document_start', persistAcrossSessions: true },
                 { id: PRIME_SCRIPT_ID, matches, js: ['content.js'], runAt: 'document_idle', persistAcrossSessions: true },
             ]);
         }

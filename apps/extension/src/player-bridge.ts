@@ -19,6 +19,7 @@
 
     type BridgeResponsePayload = {
         timeSeconds?: number;
+        durationSeconds?: number;
         paused?: boolean;
         playbackRate?: number;
         loading?: boolean;
@@ -263,7 +264,69 @@
         return { handled: false };
     }
 
+    // ── Prime Video ─────────────────────────────────────────────────────────────
+    // Found on primevideo.com: the player's React components get its stores through context. The seek bar
+    // store knows the episode position without ads (seekBar.seekBar.positionMs) and can jump there in one
+    // step (seekBar.seekToPosition(ms)), the same call Prime's own progress bar makes.
+
+    type PrimeStores = {
+        seekBar?: {
+            seekToPosition?: (positionMs: number) => void;
+            seekBar?: { positionMs?: number; endPositionMs?: number };
+        };
+    };
+
+    let primeCache: { root: Element; stores: PrimeStores } | null = null;
+
+    function findPrimeStores(): PrimeStores | null {
+        const root = document.querySelector('#dv-web-player');
+        if (!root) return null;
+        if (primeCache && primeCache.root === root && primeCache.root.isConnected) return primeCache.stores;
+        const elements = [root, ...Array.from(root.querySelectorAll('*')).slice(0, 400)];
+        for (const element of elements) {
+            const record = element as unknown as Record<string, unknown>;
+            const key = Object.keys(record).find((k) => k.startsWith('__reactInternalInstance') || k.startsWith('__reactFiber'));
+            if (!key) continue;
+            let fiber = record[key] as { stateNode?: unknown; return?: unknown } | null | undefined;
+            for (let depth = 0; depth < 60 && fiber; depth++) {
+                const node = fiber.stateNode as { context?: { stores?: PrimeStores } } | null | undefined;
+                const stores = node && !(node instanceof Node) ? node.context?.stores : undefined;
+                if (stores?.seekBar) {
+                    primeCache = { root, stores };
+                    return stores;
+                }
+                fiber = fiber.return as typeof fiber;
+            }
+        }
+        return null;
+    }
+
+    function handlePrimeCommand(command: string, payload?: Record<string, unknown> | null): BridgeRouteResult {
+        const seekBar = findPrimeStores()?.seekBar;
+        if (!seekBar) return { handled: false };
+
+        if (command === 'prime.state') {
+            const positionMs = safeNumber(seekBar.seekBar?.positionMs);
+            if (positionMs === null) return { handled: false };
+            const endMs = safeNumber(seekBar.seekBar?.endPositionMs);
+            return { handled: true, payload: { timeSeconds: positionMs / 1000, ...(endMs !== null ? { durationSeconds: endMs / 1000 } : {}) } };
+        }
+
+        if (command === 'prime.seek') {
+            const seconds = safeNumber(payload?.timeSeconds);
+            if (seconds === null || typeof seekBar.seekToPosition !== 'function') return { handled: false };
+            seekBar.seekToPosition(Math.max(0, Math.round(seconds * 1000)));
+            return { handled: true };
+        }
+
+        return { handled: false };
+    }
+
     function routeCommand(command: string, payload?: Record<string, unknown> | null): BridgeRouteResult {
+        if (command.startsWith('prime.')) {
+            return handlePrimeCommand(command, payload);
+        }
+
         if (command.startsWith('youtube.')) {
             return handleYouTubeCommand(command, payload);
         }
