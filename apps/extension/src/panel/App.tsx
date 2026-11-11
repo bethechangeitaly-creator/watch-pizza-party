@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getActiveTab, type ActiveTab } from './activeTab';
 import { AboutSheet } from './AboutSheet';
-import { DONATE_KEY, DONATE_SNOOZE_MS, shouldShowDonatePrompt } from './donate';
 import { fetchGifs } from './gifs';
 import { Landing } from './Landing';
 import { Room } from './Room';
+import { SECTIONS_KEY, mergeSections, type SectionId, type SectionState } from './sections';
 import { applyTheme, loadThemePref, saveThemePref, type ThemePref } from './theme';
 import { useSession } from './useSession';
 
@@ -17,8 +17,7 @@ export function App() {
     const [soundsEnabled, setSoundsEnabled] = useState(true);
     const [aboutOpen, setAboutOpen] = useState(false);
     const [gifsAvailable, setGifsAvailable] = useState(false);
-    const [donate, setDonate] = useState(false);
-    const [joinedAt, setJoinedAt] = useState<number | null>(null);
+    const [storedSections, setStoredSections] = useState<unknown>(null);
 
     const refreshActiveTab = useCallback(() => {
         void getActiveTab().then(setActiveTab);
@@ -51,25 +50,14 @@ export function App() {
         void fetchGifs(serverUrl, '').then((result) => setGifsAvailable(result !== 'unavailable'));
     }, [serverUrl]);
 
-    // Donation prompt: once per 7 days, after 30 minutes in a party.
-    const roomId = session?.room?.id ?? null;
     useEffect(() => {
-        setJoinedAt(roomId ? Date.now() : null);
-        setDonate(false);
-    }, [roomId]);
-    useEffect(() => {
-        if (joinedAt === null) return;
-        const check = () =>
-            void chrome.storage.local.get(DONATE_KEY).then((stored) => {
-                const next = typeof stored[DONATE_KEY] === 'number' ? (stored[DONATE_KEY] as number) : null;
-                if (shouldShowDonatePrompt({ joinedAtMs: joinedAt, nowMs: Date.now(), nextAllowedAtMs: next })) setDonate(true);
-            });
-        const timer = setInterval(check, 60_000);
-        return () => clearInterval(timer);
-    }, [joinedAt]);
-    const closeDonate = () => {
-        setDonate(false);
-        void chrome.storage.local.set({ [DONATE_KEY]: Date.now() + DONATE_SNOOZE_MS });
+        void chrome.storage.local.get(SECTIONS_KEY).then((stored) => setStoredSections(stored[SECTIONS_KEY] ?? null));
+    }, []);
+    const sections: SectionState = mergeSections(storedSections, session?.isHost ? 'host' : 'viewer');
+    const toggleSection = (id: SectionId) => {
+        const next = { ...sections, [id]: !sections[id] };
+        setStoredSections(next);
+        void chrome.storage.local.set({ [SECTIONS_KEY]: next });
     };
 
     const changeTheme = (pref: ThemePref) => {
@@ -99,8 +87,8 @@ export function App() {
                 soundsEnabled={soundsEnabled}
                 onSoundsChange={changeSounds}
                 gifsAvailable={gifsAvailable}
-                donate={donate}
-                onDonateClose={closeDonate}
+                sections={sections}
+                onToggleSection={toggleSection}
             />
         );
     }

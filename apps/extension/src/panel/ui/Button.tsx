@@ -3,10 +3,10 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const VARIANTS: Record<Variant, string> = {
-    primary: 'bg-accent text-accent-fg hover:bg-accent/90',
+    primary: 'bg-accent-strong text-accent-fg hover:bg-accent-strong/90',
     secondary: 'bg-surface-2 text-text hover:bg-surface-2/70',
     ghost: 'bg-transparent text-text hover:bg-surface-2',
-    danger: 'bg-surface-2 text-danger hover:bg-surface-2/70',
+    danger: 'bg-bad text-bad-fg hover:opacity-90',
 };
 
 export function Button({

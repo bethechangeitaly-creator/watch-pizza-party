@@ -18,9 +18,6 @@ describe('groupEntries', () => {
         expect(rows.map((r) => (r.kind === 'group' ? r.messages.length : r.kind))).toEqual([2, 1, 'system', 1]);
     });
 
-    it('appends the donate row when asked', () => {
-        expect(groupEntries([msg('u1', 'A', 0)], null, { donate: true }).at(-1)?.kind).toBe('donate');
-    });
 });
 
 describe('gifFromText', () => {

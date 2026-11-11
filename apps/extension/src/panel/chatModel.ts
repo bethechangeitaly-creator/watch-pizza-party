@@ -4,13 +4,12 @@ import { entryKey } from '../lib/timeline';
 
 export type ChatRow =
     | { kind: 'group'; key: string; userId: string; username: string; avatarColor: string; mine: boolean; messages: ChatMessage[] }
-    | { kind: 'system'; key: string; text: string; timestamp: number }
-    | { kind: 'donate'; key: string };
+    | { kind: 'system'; key: string; text: string; timestamp: number };
 
 const GROUP_WINDOW_MS = 3 * 60_000;
 
 /** Consecutive messages from the same person (by userId) within 3 minutes share one header. */
-export function groupEntries(entries: TimelineEntry[], meUserId: string | null, opts: { donate?: boolean } = {}): ChatRow[] {
+export function groupEntries(entries: TimelineEntry[], meUserId: string | null): ChatRow[] {
     const rows: ChatRow[] = [];
     for (const entry of entries) {
         if (entry.kind === 'system') {
@@ -34,7 +33,6 @@ export function groupEntries(entries: TimelineEntry[], meUserId: string | null, 
             });
         }
     }
-    if (opts.donate) rows.push({ kind: 'donate', key: 'donate' });
     return rows;
 }
 

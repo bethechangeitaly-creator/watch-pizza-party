@@ -1,10 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { X } from 'lucide-react';
 import type { TimelineEntry } from '../lib/messages';
 import { entryKey } from '../lib/timeline';
 import { gifFromText, groupEntries } from './chatModel';
 import { Composer } from './Composer';
-import { DONATE_URL } from './donate';
 import { playReceiveTone } from './sounds';
 import { Avatar } from './ui/Avatar';
 import { IconButton } from './ui/IconButton';
@@ -19,11 +17,9 @@ export function Chat(props: {
     onSend: (text: string) => void;
     serverUrl: string;
     gifsAvailable: boolean;
-    donate: boolean;
-    onDonateClose: () => void;
 }) {
     const { entries, meUserId } = props;
-    const rows = useMemo(() => groupEntries(entries, meUserId, { donate: props.donate }), [entries, meUserId, props.donate]);
+    const rows = useMemo(() => groupEntries(entries, meUserId), [entries, meUserId]);
     const listRef = useRef<HTMLDivElement>(null);
     const wasNearBottom = useRef(true);
     const [unseen, setUnseen] = useState(false);
@@ -64,19 +60,6 @@ export function Chat(props: {
                 {rows.map((row) => {
                     if (row.kind === 'system') {
                         return <p key={row.key} className="truncate text-center text-meta text-muted">{row.text}</p>;
-                    }
-                    if (row.kind === 'donate') {
-                        return (
-                            <div key={row.key} className="flex items-center gap-2 rounded-control bg-surface px-3 py-2 text-meta text-muted">
-                                <span className="flex-1">
-                                    Enjoying the party? The Pizza Server runs on donations.{' '}
-                                    <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-accent">Donate a slice</a>
-                                </span>
-                                <IconButton label="Dismiss" onClick={props.onDonateClose}>
-                                    <X size={14} />
-                                </IconButton>
-                            </div>
-                        );
                     }
                     return (
                         <article key={row.key} className="flex gap-2">

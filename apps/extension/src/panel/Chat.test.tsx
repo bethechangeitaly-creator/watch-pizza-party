@@ -12,7 +12,7 @@ const msg = (userId: string, username: string, timestamp: number, text = 'hi'): 
 function props(over: Partial<Parameters<typeof Chat>[0]> = {}) {
     return {
         entries: [] as TimelineEntry[], meUserId: 'u1', soundsEnabled: false, onSend: vi.fn(), serverUrl: 'https://s',
-        gifsAvailable: true, donate: false, onDonateClose: vi.fn(), ...over,
+        gifsAvailable: true, ...over,
     };
 }
 
@@ -56,12 +56,4 @@ describe('Chat', () => {
         expect(screen.getByText('460/500')).toBeInTheDocument();
     });
 
-    it('shows the donate prompt', async () => {
-        const user = userEvent.setup();
-        const p = props({ donate: true });
-        render(<Chat {...p} />);
-        expect(screen.getByRole('link', { name: 'Donate a slice' })).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Dismiss' }));
-        expect(p.onDonateClose).toHaveBeenCalled();
-    });
 });
