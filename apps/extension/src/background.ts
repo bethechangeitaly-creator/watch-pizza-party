@@ -1,7 +1,7 @@
 import { io, Socket } from 'socket.io-client';
+import { DEFAULT_SERVER_URL } from './config';
 import { Platform, LegacyRoom as Room, LegacySyncProfile as SyncProfile, WSMessage, WSMessageSchema } from '@watch-party/shared';
 
-const DEFAULT_SERVER_URL = 'https://watch-pizza-party.onrender.com';
 const SERVER_URL_STORAGE_KEY = 'watchparty_server_url';
 const SESSION_STORAGE_KEY_BASE = 'watchparty_active_session';
 const LEGACY_SESSION_STORAGE_KEY = SESSION_STORAGE_KEY_BASE;
@@ -343,12 +343,6 @@ async function startVolumeBoostCapture(tabId: number, retryCount = 0) {
             return;
         }
 
-        // CRITICAL: tabCapture requires the tab to be active/focused
-        // We activate the tab silently - the user will see the media tab briefly
-        await chrome.tabs.update(tabId, { active: true });
-
-        // Small delay to ensure tab activation completes
-        await new Promise(resolve => setTimeout(resolve, 100));
 
         await ensureOffscreenDocument();
 
@@ -3121,7 +3115,7 @@ async function restoreSessionFromStorage() {
 }
 
 chrome.sidePanel
-    .setPanelBehavior({ openPanelOnActionClick: false })
+    .setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error) => console.error(error));
 
 chrome.runtime.onConnect.addListener((port) => {
