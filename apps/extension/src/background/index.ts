@@ -1,5 +1,15 @@
 import type { SyncRequestReason, Timeline } from '@watch-party/shared';
-import type { BackgroundEvent, PanelRequest, PanelResponse, TimelineEntry } from '../lib/messages';
+import {
+    parseContentMessage,
+    type BackgroundEvent,
+    type BackgroundToContent,
+    type ContentToBackground,
+    type PanelRequest,
+    type PanelResponse,
+    type PublicSession,
+    type TimelineEntry,
+} from '../lib/messages';
+import { planViewerNavigation, shouldAcceptHostEvent } from './mediaTab';
 import { ServerConnection } from './connection';
 import { createRoomWithRetry } from './createRoom';
 import { SessionController } from './sessionController';
@@ -15,10 +25,113 @@ function broadcast(event: BackgroundEvent): void {
     });
 }
 
-function handleTimeline(_timeline: Timeline, _force: boolean): void {}
+function sendToTab(tabId: number, message: BackgroundToContent): void {
+    chrome.tabs.sendMessage(tabId, message, { frameId: 0 }).catch(() => {
+        // The page has no content script (yet) — it says hello when it boots.
+    });
+}
+
+// ── Media tab: activation and viewer navigation ───────────────────────────────
+
+let lastNavigatedKey: string | null = null;
+let activeContent: { tabId: number; role: 'host' | 'viewer' } | null = null;
+
+function desiredRole(state: PublicSession): 'host' | 'viewer' | null {
+    if (state.status !== 'joined' && state.status !== 'reconnecting') return null;
+    if (!state.mediaTab || !state.me) return null;
+    return state.isHost ? 'host' : 'viewer';
+}
+
+/** Keeps exactly the bound media tab's content script active, in the right role. */
+function syncContentActivation(state: PublicSession): void {
+    const role = desiredRole(state);
+    const tabId = state.mediaTab?.tabId ?? null;
+    if (activeContent && (activeContent.tabId !== tabId || activeContent.role !== role)) {
+        sendToTab(activeContent.tabId, { type: 'bg.deactivate' });
+        activeContent = null;
+    }
+    if (role && tabId !== null && !activeContent) {
+        activeContent = { tabId, role };
+        activateTab(tabId, role);
+    }
+}
+
+function activateTab(tabId: number, role: 'host' | 'viewer'): void {
+    sendToTab(tabId, { type: 'bg.activate', role });
+    const timeline = controller.latestTimeline();
+    if (role === 'viewer' && timeline) {
+        sendToTab(tabId, { type: 'bg.timeline', timeline, clockOffsetMs: controller.clockOffsetMs(), force: false });
+    }
+}
+
+async function followTimeline(timeline: Timeline, force: boolean): Promise<void> {
+    const state = controller.state();
+    if (state.isHost || !state.mediaTab) return;
+    const tabId = state.mediaTab.tabId;
+    let url: string | undefined;
+    try {
+        url = (await chrome.tabs.get(tabId)).url;
+    } catch {
+        return;
+    }
+    const plan = planViewerNavigation({ timeline, mediaTab: { tabId, url }, lastNavigatedKey, force });
+    if (plan.action === 'navigate') {
+        lastNavigatedKey = plan.key;
+        await chrome.tabs.update(plan.tabId, { url: plan.url }).catch(() => {});
+        return; // The new page says hello and then receives the timeline.
+    }
+    sendToTab(tabId, { type: 'bg.timeline', timeline, clockOffsetMs: controller.clockOffsetMs(), force });
+}
+
+function handleTimeline(timeline: Timeline, force: boolean): void {
+    void followTimeline(timeline, force);
+}
 function handleEntries(_entries: TimelineEntry[], _replace: boolean): void {}
 function handleHostRequest(_reason: SyncRequestReason): void {}
-function handleClock(_offsetMs: number): void {}
+function handleClock(offsetMs: number): void {
+    if (activeContent?.role === 'viewer') sendToTab(activeContent.tabId, { type: 'bg.clock', clockOffsetMs: offsetMs });
+}
+
+/** After an extension update, already-open video tabs have no content script until we inject it. */
+async function ensureContentScript(tabId: number): Promise<void> {
+    try {
+        const [probe] = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: () => (globalThis as { __wppContentAlive?: boolean }).__wppContentAlive === true,
+        });
+        if (probe?.result) return;
+        await chrome.scripting.executeScript({ target: { tabId }, files: ['player-bridge.js'], world: 'MAIN' });
+        await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
+    } catch {
+        // Not a YouTube/Netflix page (no host permission) — nothing to inject.
+    }
+}
+
+function handleContentMessage(message: ContentToBackground, tabId: number): void {
+    const state = controller.state();
+    const fromMediaTab = shouldAcceptHostEvent(tabId, state.mediaTab?.tabId ?? null);
+    switch (message.type) {
+        case 'content.hello':
+            if (fromMediaTab && activeContent?.tabId === tabId) activateTab(tabId, activeContent.role);
+            return;
+        case 'content.hostEvent': {
+            if (!fromMediaTab || !state.isHost) return;
+            const { capturedAtLocalMs, ...event } = message.event;
+            controller.send({
+                type: 'sync.host_update',
+                payload: { ...event, atServerMs: capturedAtLocalMs + controller.clockOffsetMs() },
+            });
+            return;
+        }
+        case 'content.viewerStatus':
+            if (!fromMediaTab || state.isHost) return;
+            controller.send({ type: 'sync.viewer_status', payload: { rev: message.rev, driftSec: message.driftSec, state: message.state } });
+            controller.setMySync(message.state);
+            return;
+        default:
+            return;
+    }
+}
 
 const controller = new SessionController({
     storage,
@@ -43,7 +156,10 @@ const controller = new SessionController({
             return null;
         }
     },
-    emit: (state) => broadcast({ type: 'bg.session', state }),
+    emit: (state) => {
+        broadcast({ type: 'bg.session', state });
+        syncContentActivation(state);
+    },
     onTimeline: (t, force) => handleTimeline(t, force),
     onEntries: (entries, replace) => handleEntries(entries, replace),
     onHostRequest: (reason) => handleHostRequest(reason),
@@ -66,17 +182,31 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
         case 'session.get':
             return ok();
         case 'session.create':
+            lastNavigatedKey = null;
+            await ensureContentScript(req.tabId);
             await controller.create(req.username, req.tabId, await tabTitle(req.tabId));
             return ok();
         case 'session.join':
+            lastNavigatedKey = null;
+            await ensureContentScript(req.tabId);
             await controller.join(req.roomId, req.username, req.tabId, await tabTitle(req.tabId));
             return ok();
         case 'session.leave':
+            lastNavigatedKey = null;
             await controller.leave();
             return ok();
-        case 'session.useTab':
+        case 'session.useTab': {
+            await ensureContentScript(req.tabId);
             await controller.useTab(req.tabId, await tabTitle(req.tabId));
+            const timeline = controller.latestTimeline();
+            if (timeline) await followTimeline(timeline, true);
             return ok();
+        }
+        case 'sync.resyncMe': {
+            const timeline = controller.latestTimeline();
+            if (timeline) await followTimeline(timeline, true);
+            return ok();
+        }
         case 'chat.send':
             controller.send({ type: 'chat.send', payload: { text: req.text } });
             return ok();
@@ -121,7 +251,16 @@ chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
             .catch((error) => sendResponse(fail(error instanceof Error ? error.message : String(error))));
         return true;
     }
+    if (typeof sender.tab?.id === 'number' && sender.frameId === 0) {
+        const message = parseContentMessage(raw);
+        if (message) handleContentMessage(message, sender.tab.id);
+    }
     return false;
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+    if (activeContent?.tabId === tabId) activeContent = null;
+    if (controller.state().mediaTab?.tabId === tabId) controller.clearMediaTab();
 });
 
 let openPanels = 0;
