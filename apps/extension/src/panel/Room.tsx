@@ -127,6 +127,7 @@ export function Room(props: RoomProps) {
                 soundsEnabled={props.soundsEnabled}
                 onSoundsChange={props.onSoundsChange}
                 onMinimize={() => void send({ type: 'panel.minimize' }).then(() => window.close())}
+                onSyncNow={session.isHost ? () => void send({ type: 'sync.force' }) : undefined}
                 onLeave={() => setConfirm('leave')}
                 onClose={() => setConfirm('close')}
                 onAbout={() => setAboutOpen(true)}
@@ -201,29 +202,18 @@ export function Room(props: RoomProps) {
                     </div>
                 </Section>
 
-                <Section title="Actions" open={sections.sync} onToggle={() => props.onToggleSection('sync')}>
-                    <button
-                        type="button"
-                        title={session.isHost ? 'Bring everyone to your position' : "Jump back to the host's position"}
-                        className={`${pill} w-full bg-cheese text-cheese-fg`}
-                        onClick={() => void send(session.isHost ? { type: 'sync.force' } : { type: 'sync.resyncMe' })}
-                    >
-                        🔄 Sync Now
-                    </button>
-                    {!session.isHost && (
-                        <>
-                            <p className="mb-1.5 mt-3 text-meta text-muted">Ask host:</p>
-                            <div className="grid grid-cols-4 gap-1.5">
-                                {ASKS.map((a) => (
-                                    <button key={a.reason} type="button" aria-label={a.aria} title={a.aria}
-                                        className={`${pill} bg-surface-2 text-meta text-text`} onClick={() => void send({ type: 'sync.request', reason: a.reason })}>
-                                        {a.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </>
-                    )}
-                </Section>
+                {!session.isHost && (
+                    <Section title="Ask host:" open={sections.sync} onToggle={() => props.onToggleSection('sync')}>
+                        <div className="grid grid-cols-4 gap-1.5">
+                            {ASKS.map((a) => (
+                                <button key={a.reason} type="button" aria-label={a.aria} title={a.aria}
+                                    className={`${pill} bg-surface-2 text-meta text-text`} onClick={() => void send({ type: 'sync.request', reason: a.reason })}>
+                                    {a.label}
+                                </button>
+                            ))}
+                        </div>
+                    </Section>
+                )}
 
                 <Section title="Participants" badge={`${room.participants.length} Watching`} open={sections.people} onToggle={() => props.onToggleSection('people')}>
                     <ul aria-label="Participants" className="flex flex-col gap-1">

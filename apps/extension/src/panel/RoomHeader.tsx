@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Copy, LogOut, Minimize2, Moon, Power, Sun, Volume2, VolumeX } from 'lucide-react';
+import { Check, Copy, LogOut, Minimize2, Moon, Power, RefreshCw, Sun, Volume2, VolumeX } from 'lucide-react';
 import type { Room } from '@watch-party/shared';
 import type { ThemePref } from './theme';
 import { IconButton } from './ui/IconButton';
@@ -11,6 +11,8 @@ export function RoomHeader(props: {
     soundsEnabled: boolean;
     onSoundsChange: (on: boolean) => void;
     onMinimize: () => void;
+    /** Host only: bring everyone to the host's position. */
+    onSyncNow?: () => void;
     onLeave: () => void;
     onClose: () => void;
     onAbout: () => void;
@@ -40,6 +42,17 @@ export function RoomHeader(props: {
             <IconButton label="Copy room code" onClick={() => void copyCode()}>
                 {copied ? <Check size={15} /> : <Copy size={15} />}
             </IconButton>
+            {props.onSyncNow && (
+                <button
+                    type="button"
+                    aria-label="Sync Now"
+                    title="Sync Now: bring everyone to your position"
+                    onClick={props.onSyncNow}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cheese text-cheese-fg transition-opacity hover:opacity-85"
+                >
+                    <RefreshCw size={15} strokeWidth={2.5} />
+                </button>
+            )}
             <span className="flex-1" />
             <IconButton label="Minimize sidebar" onClick={props.onMinimize}><Minimize2 size={16} /></IconButton>
             <IconButton label={props.soundsEnabled ? 'Mute chat sounds' : 'Enable chat sounds'} onClick={() => props.onSoundsChange(!props.soundsEnabled)}>

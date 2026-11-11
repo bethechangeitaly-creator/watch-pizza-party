@@ -25,33 +25,29 @@ function props(over: Partial<Parameters<typeof Room>[0]> = {}) {
 const host = () => sessionWith({ isHost: true, playing: true });
 
 describe('Room', () => {
-    it('host sees Invite and Sync open, People and Volume folded', () => {
-        render(<Room {...props({ session: host() })} />);
-        for (const name of ['Copy invite text', 'Share via WhatsApp', 'Share via Email', '🔄 Sync Now']) {
-            expect(screen.getByRole('button', { name })).toBeInTheDocument();
+    it('every section starts folded', () => {
+        render(<Room {...props()} />);
+        for (const name of [/Invite to Join/, /Ask host/, /Participants/, /Volume Boost/]) {
+            expect(screen.getByRole('button', { name })).toHaveAttribute('aria-expanded', 'false');
         }
-        expect(screen.queryByRole('button', { name: '🍕 Donate a Slice of Pizza' })).toBeNull();
-        expect(screen.queryByRole('slider', { name: 'Volume Boost' })).toBeNull();
-        expect(screen.getByRole('button', { name: /Participants/ })).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it('Sync Now syncs everyone for the host and resyncs a viewer', async () => {
+    it('host: Sync Now sits in the header and syncs everyone; there is no Ask host section', async () => {
         const user = userEvent.setup();
         const h = props({ session: host() });
-        const { unmount } = render(<Room {...h} />);
-        await user.click(screen.getByRole('button', { name: '🔄 Sync Now' }));
+        render(<Room {...h} />);
+        await user.click(screen.getByRole('button', { name: 'Sync Now' }));
         expect(h.send).toHaveBeenCalledWith({ type: 'sync.force' });
-        unmount();
-        const v = props();
-        render(<Room {...v} />);
-        await user.click(screen.getByRole('button', { name: '🔄 Sync Now' }));
-        expect(v.send).toHaveBeenCalledWith({ type: 'sync.resyncMe' });
+        expect(screen.queryByRole('button', { name: /Ask host/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: /Actions/ })).toBeNull();
     });
 
-    it('viewer can ask the host', async () => {
+    it('guest: no Sync Now button; "Ask host:" has the four asks', async () => {
         const user = userEvent.setup();
         const p = props();
-        render(<Room {...p} />);
+        render(<Room {...p} sections={{ ...p.sections, sync: true }} />);
+        expect(screen.queryByRole('button', { name: 'Sync Now' })).toBeNull();
+        expect(screen.queryByText(/Sync Now/)).toBeNull();
         await user.click(screen.getByRole('button', { name: 'Ask host: pause' }));
         expect(p.send).toHaveBeenCalledWith({ type: 'sync.request', reason: 'pause' });
     });

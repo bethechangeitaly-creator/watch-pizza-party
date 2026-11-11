@@ -4,9 +4,9 @@ export type SectionState = Record<SectionId, boolean>;
 export const SECTIONS_KEY = 'wpp.sections';
 const IDS: SectionId[] = ['invite', 'sync', 'people', 'volume'];
 
-/** Like 1.2: the host starts with Invite open (to share the code); everyone starts with Sync open. */
-export function defaultSections(role: 'host' | 'viewer'): SectionState {
-    return { invite: role === 'host', sync: true, people: false, volume: false };
+/** Every section starts folded; what the user opens is remembered. */
+export function defaultSections(_role: 'host' | 'viewer'): SectionState {
+    return { invite: false, sync: false, people: false, volume: false };
 }
 
 export function mergeSections(stored: unknown, role: 'host' | 'viewer'): SectionState {
