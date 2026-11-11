@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Info, RefreshCw } from 'lucide-react';
-import { extractMedia, generateRandomName, sanitizeUsername } from '@watch-party/shared';
+import { extractMedia, generateRandomName, isSupportedSite, sanitizeUsername } from '@watch-party/shared';
 import type { PanelRequest, PanelResponse, PublicSession } from '../lib/messages';
 import type { ActiveTab } from './activeTab';
 import { parseRoomCode } from './roomCode';
@@ -138,6 +138,9 @@ export function Landing({
                         Join
                     </Button>
                 </div>
+                {activeTab && !isSupportedSite(activeTab.url) && !codeError && (
+                    <p className="text-meta text-muted">The video will open in a new tab.</p>
+                )}
                 {sessionError && lastAction === 'join' && <p role="alert" className="text-meta text-danger">{sessionError}</p>}
                 {busy && lastAction === null && (
                     <p className="text-meta text-muted">Rejoining your party…</p>

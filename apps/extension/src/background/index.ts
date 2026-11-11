@@ -10,7 +10,8 @@ import {
     type PublicSession,
     type TimelineEntry,
 } from '../lib/messages';
-import { planViewerNavigation, shouldAcceptHostEvent } from './mediaTab';
+import { isSupportedSite } from '@watch-party/shared';
+import { mediaKey, planViewerNavigation, shouldAcceptHostEvent } from './mediaTab';
 import { VolumeBoost } from './volume';
 import { ENTRIES_KEY, mergeEntries } from '../lib/timeline';
 import { ServerConnection } from './connection';
@@ -37,7 +38,8 @@ function sendToTab(tabId: number, message: BackgroundToContent): void {
 
 // ── Media tab: activation and viewer navigation ───────────────────────────────
 
-let lastNavigatedKey: string | null = null;
+let lastTimelineKey: string | null = null; // media of the last timeline we acted on
+let justBound = false; // the media tab was just chosen (start/join/"Use this tab")
 let activeContent: { tabId: number; role: 'host' | 'viewer' } | null = null;
 
 function desiredRole(state: PublicSession): 'host' | 'viewer' | null {
@@ -78,9 +80,10 @@ async function followTimeline(timeline: Timeline, force: boolean): Promise<void>
     } catch {
         return;
     }
-    const plan = planViewerNavigation({ timeline, mediaTab: { tabId, url }, lastNavigatedKey, force });
+    const plan = planViewerNavigation({ timeline, mediaTab: { tabId, url }, previousKey: lastTimelineKey, justBound, force });
+    lastTimelineKey = mediaKey(timeline);
+    justBound = false;
     if (plan.action === 'navigate') {
-        lastNavigatedKey = plan.key;
         await chrome.tabs.update(plan.tabId, { url: plan.url }).catch(() => {});
         return; // The new page says hello and then receives the timeline.
     }
@@ -275,20 +278,31 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
         case 'session.get':
             return ok();
         case 'session.create':
-            lastNavigatedKey = null;
+            lastTimelineKey = null;
             await ensureContentScript(req.tabId);
             await controller.create(req.username, req.tabId, await tabTitle(req.tabId));
             return ok();
-        case 'session.join':
-            lastNavigatedKey = null;
-            await ensureContentScript(req.tabId);
-            await controller.join(req.roomId, req.username, req.tabId, await tabTitle(req.tabId));
+        case 'session.join': {
+            lastTimelineKey = null;
+            justBound = true;
+            // Never turn the page the user came from (WhatsApp, Gmail…) into the video: use a new tab.
+            let tabId = req.tabId;
+            const current = await chrome.tabs.get(tabId).catch(() => null);
+            if (!isSupportedSite(current?.url)) {
+                const created = await chrome.tabs.create({});
+                if (created.id !== undefined) tabId = created.id;
+            }
+            await ensureContentScript(tabId);
+            await controller.join(req.roomId, req.username, tabId, await tabTitle(tabId));
             return ok();
+        }
         case 'session.leave':
-            lastNavigatedKey = null;
+            lastTimelineKey = null;
+            justBound = false;
             await controller.leave();
             return ok();
         case 'session.useTab': {
+            justBound = true;
             await ensureContentScript(req.tabId);
             await controller.useTab(req.tabId, await tabTitle(req.tabId));
             const timeline = controller.latestTimeline();

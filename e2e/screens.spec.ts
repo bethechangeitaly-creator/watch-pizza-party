@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { VIDEO, createParty, joinParty, launchMember, panelRequest, test, waitNoAd } from './fixtures';
+import { VIDEO, createParty, joinParty, launchMember, panelRequest, test, videoPage, waitNoAd } from './fixtures';
 
 const out = (name: string) => path.join(import.meta.dirname, 'screenshots', `${name}.png`);
 
@@ -23,7 +23,7 @@ test('panel screenshots', async () => {
         const roomId = await createParty(host);
         await viewer.page.goto('https://example.com/');
         await joinParty(viewer, roomId, '*://example.com/*');
-        await viewer.page.waitForURL(/watch/);
+        const viewerVideo = await videoPage(viewer);
         await panelRequest(host, { type: 'chat.send', text: 'Popcorn ready? Starting in 10 seconds' });
         await panelRequest(viewer, { type: 'chat.send', text: 'Ready! 🍕' });
         await panelRequest(viewer, { type: 'chat.send', text: 'Turn it up' });
@@ -48,9 +48,9 @@ test('panel screenshots', async () => {
 
         // The bubble only appears once the panel is closed.
         await viewer.panel.close();
-        await viewer.page.bringToFront();
-        await viewer.page.waitForSelector('wpp-bubble', { state: 'visible', timeout: 10_000 });
-        await viewer.page.screenshot({ path: out('bubble'), clip: { x: 1280 - 200, y: 250, width: 200, height: 250 } });
+        await viewerVideo.bringToFront();
+        await viewerVideo.waitForSelector('wpp-bubble', { state: 'visible', timeout: 10_000 });
+        await viewerVideo.screenshot({ path: out('bubble'), clip: { x: 1280 - 200, y: 250, width: 200, height: 250 } });
     } finally {
         await host.context.close();
         await viewer.context.close();

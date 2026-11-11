@@ -56,6 +56,14 @@ describe('Landing', () => {
         expect(p.send).toHaveBeenCalledWith({ type: 'session.join', roomId: 'Jol4I72BE4', username: expect.any(String), tabId: 2 });
     });
 
+    it('says the video opens in a new tab when joining from another site', () => {
+        const { unmount } = render(<Landing {...props({ activeTab: { tabId: 2, url: 'https://web.whatsapp.com/' } })} />);
+        expect(screen.getByText('The video will open in a new tab.')).toBeInTheDocument();
+        unmount();
+        render(<Landing {...props({ activeTab: { tabId: 2, url: 'https://www.youtube.com/' } })} />);
+        expect(screen.queryByText('The video will open in a new tab.')).toBeNull();
+    });
+
     it('shows the session error', () => {
         render(<Landing {...props({ session: { ...idle, status: 'error', error: { code: 'room_not_found', message: 'Room not found. Check the code.' } } })} />);
         expect(screen.getByText('Room not found. Check the code.')).toBeInTheDocument();

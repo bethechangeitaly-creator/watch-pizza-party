@@ -18,6 +18,14 @@ function isHostOrSubdomain(hostname: string, domain: string): boolean {
     return hostname === domain || hostname.endsWith(`.${domain}`);
 }
 
+/** Any YouTube or Netflix page (the sites the extension runs on), video or not. */
+export function isSupportedSite(rawUrl: string | undefined): boolean {
+    const url = rawUrl ? parseHttpsUrl(rawUrl) : null;
+    if (!url) return false;
+    const host = url.hostname.toLowerCase();
+    return isHostOrSubdomain(host, 'youtube.com') || host === 'youtu.be' || isHostOrSubdomain(host, 'netflix.com');
+}
+
 export function isValidMediaRef(ref: MediaRef): boolean {
     if (!ref || typeof ref.mediaId !== 'string') return false;
     if (ref.platform === 'youtube') return YOUTUBE_ID_RE.test(ref.mediaId);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalWatchUrl, extractMedia, isAllowedGifUrl } from './media';
+import { canonicalWatchUrl, extractMedia, isAllowedGifUrl, isSupportedSite } from './media';
 
 const YT = 'dQw4w9WgXcQ';
 
@@ -40,4 +40,18 @@ describe('isAllowedGifUrl', () => {
         expect(isAllowedGifUrl('https://evil.com/a.gif')).toBe(false);
         expect(isAllowedGifUrl('https://media.giphy.com.evil.com/a.gif')).toBe(false);
     });
+});
+
+describe('isSupportedSite', () => {
+    it.each([
+        ['https://www.youtube.com/', true],
+        ['https://m.youtube.com/results?search_query=x', true],
+        ['https://www.netflix.com/browse', true],
+        ['https://youtu.be/dQw4w9WgXcQ', true],
+        ['https://mail.google.com/mail/u/0/', false],
+        ['https://web.whatsapp.com/', false],
+        ['https://youtube.com.evil.com/', false],
+        ['chrome://newtab/', false],
+        [undefined, false],
+    ])('isSupportedSite(%s)', (url, ok) => expect(isSupportedSite(url)).toBe(ok));
 });

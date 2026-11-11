@@ -61,6 +61,17 @@ export async function joinParty(viewer: Member, roomId: string, urlPattern: stri
     await expect.poll(async () => (await sessionOf(viewer)).status, { timeout: 30_000 }).toBe('joined');
 }
 
+/** The tab the party opened the host's video in (joining from another site opens a new tab). */
+export async function videoPage(m: Member, timeoutMs = 20_000): Promise<Page> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        const page = m.context.pages().find((p) => /watch\?v=aqz-KE-bpKQ/.test(p.url()));
+        if (page) return page;
+        await new Promise((r) => setTimeout(r, 200));
+    }
+    throw new Error('the party video never opened');
+}
+
 export async function waitNoAd(page: Page) {
     await page.waitForSelector('video.html5-main-video', { timeout: 30_000 });
     const deadline = Date.now() + 60_000;
