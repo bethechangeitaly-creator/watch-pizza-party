@@ -2,9 +2,12 @@ import { nanoid } from 'nanoid';
 import {
     LIMITS,
     generateRandomName,
+    expectedPositionSec,
     sanitizeUsername,
     uniqueDisplayName,
     type ChatMessage,
+    type HostUpdate,
+    type UserStatus,
     type Room,
     type Timeline,
     type User,
@@ -160,6 +163,60 @@ export class RoomStore {
 
     getChatHistory(roomId: string): ChatMessage[] {
         return [...(this.rooms.get(roomId)?.chat ?? [])];
+    }
+
+    /** Host-only. The server assigns rev and clamps the anchor so a bad client clock can't skew everyone. */
+    applyHostUpdate(roomId: string, userId: string, update: HostUpdate): { timeline: Timeline; previous: Timeline | null } | null {
+        const record = this.rooms.get(roomId);
+        const member = record?.members.get(userId);
+        if (!record || !member || record.hostId !== userId) return null;
+        const now = this.now();
+        const previous = record.timeline;
+        const timeline: Timeline = {
+            rev: (previous?.rev ?? 0) + 1,
+            platform: update.platform,
+            mediaId: update.mediaId,
+            ...(update.title !== undefined ? { title: update.title } : {}),
+            positionSec: update.positionSec,
+            anchorServerMs: Math.min(now + 1000, Math.max(now - 5000, update.atServerMs)),
+            rate: update.rate,
+            paused: update.paused,
+            inAd: update.inAd,
+            cause: update.cause,
+            updatedBy: member.user.username,
+        };
+        record.timeline = timeline;
+        return { timeline, previous };
+    }
+
+    forceTimeline(roomId: string, userId: string): Timeline | null {
+        const record = this.rooms.get(roomId);
+        const member = record?.members.get(userId);
+        if (!record || !member || record.hostId !== userId || !record.timeline) return null;
+        const now = this.now();
+        const previous = record.timeline;
+        record.timeline = {
+            ...previous,
+            rev: previous.rev + 1,
+            positionSec: expectedPositionSec(previous, now),
+            anchorServerMs: now,
+            cause: 'force',
+            updatedBy: member.user.username,
+        };
+        return record.timeline;
+    }
+
+    getTimeline(roomId: string): Timeline | null {
+        return this.rooms.get(roomId)?.timeline ?? null;
+    }
+
+    /** Returns true when the stored status changed (the caller then re-broadcasts room.state). */
+    setViewerStatus(roomId: string, userId: string, status: UserStatus): boolean {
+        const record = this.rooms.get(roomId);
+        const member = record?.members.get(userId);
+        if (!record || !member || record.hostId === userId || member.user.status === status) return false;
+        member.user.status = status;
+        return true;
     }
 
     isHost(roomId: string, userId: string): boolean {

@@ -3,13 +3,14 @@ import {
     ClientMessageSchema,
     MESSAGE_EVENT,
     PROTOCOL_VERSION,
+    TIME_EVENT,
     UPDATE_REQUIRED_MESSAGE,
     type ClientMessage,
     type ErrorCode,
     type ServerMessage,
 } from '@watch-party/shared';
 import type { RemovalResult, RoomStore } from './roomStore';
-import { systemEvent } from './systemEvents';
+import { describeTimelineChange, requestText, systemEvent } from './systemEvents';
 import { IP_LIMITS, KeyedLimiter, SOCKET_LIMITS, TokenBucket, clientIp } from './rateLimit';
 
 const ERROR_TEXT: Record<'room_not_found' | 'room_full', string> = {
@@ -20,6 +21,7 @@ const ERROR_TEXT: Record<'room_not_found' | 'room_full', string> = {
 type SocketSession = { roomId: string; userId: string } | null;
 
 const TOO_FAST = "You're doing that too fast.";
+const NOT_HOST = 'Only the host controls playback.';
 
 export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: () => number }) {
     const ipJoins = new KeyedLimiter(IP_LIMITS.join[0], IP_LIMITS.join[1], deps.now);
@@ -86,6 +88,7 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
                         }
                     }
                     session = { roomId: credentials.roomId, userId: credentials.userId };
+                    socket.data.userId = credentials.userId;
                     store.attachSocket(credentials.roomId, credentials.userId);
                     socket.join(credentials.roomId);
                     send(socket, { type: 'room.joined', payload: { ...credentials, resumed } });
@@ -95,6 +98,8 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
                             { id: credentials.userId, username: credentials.username });
                     }
                     broadcastRoomState(credentials.roomId);
+                    const timeline = store.getTimeline(credentials.roomId);
+                    if (timeline) send(socket, { type: 'sync.timeline', payload: timeline });
                     return;
                 }
                 case 'room.leave': {
@@ -114,6 +119,57 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
                     if (message) broadcast(session.roomId, { type: 'chat.message', payload: message });
                     return;
                 }
+                case 'sync.host_update': {
+                    if (!session || !limits.hostUpdate.take()) return;
+                    const result = store.applyHostUpdate(session.roomId, session.userId, msg.payload);
+                    if (!result) {
+                        sendError(socket, 'not_host', NOT_HOST);
+                        return;
+                    }
+                    broadcast(session.roomId, { type: 'sync.timeline', payload: result.timeline });
+                    const event = describeTimelineChange(result.previous, result.timeline, result.timeline.updatedBy ?? '');
+                    if (event) announce(session.roomId, event.kind, event.text);
+                    return;
+                }
+                case 'sync.force': {
+                    if (!session || !limits.hostUpdate.take()) return;
+                    const timeline = store.forceTimeline(session.roomId, session.userId);
+                    if (!timeline) {
+                        if (!store.isHost(session.roomId, session.userId)) sendError(socket, 'not_host', NOT_HOST);
+                        return;
+                    }
+                    broadcast(session.roomId, { type: 'sync.timeline', payload: timeline });
+                    const event = describeTimelineChange(null, timeline, timeline.updatedBy ?? '');
+                    if (event) announce(session.roomId, event.kind, event.text);
+                    return;
+                }
+                case 'sync.viewer_status': {
+                    if (!session || !limits.viewerStatus.take()) return;
+                    if (store.setViewerStatus(session.roomId, session.userId, msg.payload.state)) {
+                        broadcastRoomState(session.roomId);
+                    }
+                    return;
+                }
+                case 'sync.request': {
+                    if (!session || store.isHost(session.roomId, session.userId)) return;
+                    if (!limits.request.take()) {
+                        sendError(socket, 'rate_limited', TOO_FAST);
+                        return;
+                    }
+                    const room = store.getPublicRoom(session.roomId);
+                    const me = room?.participants.find((p) => p.id === session!.userId);
+                    if (!room || !me) return;
+                    const { roomId } = session;
+                    const request: ServerMessage = {
+                        type: 'sync.request',
+                        payload: { reason: msg.payload.reason, userId: me.id, username: me.username },
+                    };
+                    void io.in(roomId).fetchSockets().then((sockets) => {
+                        for (const s of sockets) if (s.data.userId === room.hostId) s.emit(MESSAGE_EVENT, request);
+                    });
+                    announce(roomId, 'request', requestText(msg.payload.reason, me.username), { id: me.id, username: me.username });
+                    return;
+                }
                 default:
                     return;
             }
@@ -131,6 +187,11 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
                 return;
             }
             handle(parsed.data);
+        });
+
+        socket.on(TIME_EVENT, (ack: unknown) => {
+            if (typeof ack !== 'function' || !limits.time.take()) return;
+            ack(deps.now());
         });
 
         socket.on('disconnect', () => {
