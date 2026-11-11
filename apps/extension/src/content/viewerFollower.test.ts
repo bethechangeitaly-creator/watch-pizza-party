@@ -122,4 +122,15 @@ describe('ViewerFollower', () => {
             expect(reports.at(-1)?.needsClick).toBe(false);
         });
     });
+
+    it('a pause during a jump (shown as loading) is not mistaken for Chrome blocking playback', () => {
+        const { adapter, reports, follower, clock } = setup();
+        follower.setTimeline(timeline({ positionSec: 10, anchorServerMs: 0 }), 0, false);
+        adapter.snap = { positionSec: 10, paused: true, rate: 1, buffering: true, inAd: false };
+        follower.tick();
+        clock.advance(5000);
+        adapter.snap = { positionSec: 10, paused: true, rate: 1, buffering: true, inAd: false };
+        follower.tick();
+        expect(reports.at(-1)?.needsClick).toBe(false);
+    });
 });

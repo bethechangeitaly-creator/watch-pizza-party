@@ -65,7 +65,7 @@ export class ViewerFollower {
         // until the player has shown its time once — before that, jumps would land in the wrong place.
         const uncalibrated = this.adapter.needsUserClick?.() ?? false;
         const hostPlaying = !isTimelinePaused(t) && !t.inAd;
-        if (hostPlaying && player.paused) this.playPendingSince ??= now;
+        if (hostPlaying && player.paused && !player.buffering) this.playPendingSince ??= now;
         else this.playPendingSince = null;
         const blocked = this.playPendingSince !== null && now - this.playPendingSince >= BLOCKED_AFTER_MS;
         const needsClick = uncalibrated || blocked;

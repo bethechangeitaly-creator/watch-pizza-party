@@ -125,6 +125,23 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
         }
     };
 
+    /** A calm card over Prime's player while it hops, so the viewer sees "catching up", not glitches. */
+    const COVER = 'data-wpp-catching-up';
+    const cover = (root: Element) => {
+        if (root.querySelector(`[${COVER}]`)) return;
+        const card = doc.createElement('div');
+        card.setAttribute(COVER, '');
+        card.setAttribute('role', 'status');
+        card.style.cssText = [
+            'position:absolute', 'inset:0', 'z-index:2147483646', 'display:flex', 'align-items:center', 'justify-content:center',
+            'background:rgb(26 14 15 / 0.88)', 'color:rgb(245 233 228)', 'pointer-events:none',
+            'font:700 20px/1.4 ui-rounded,"SF Pro Rounded",ui-sans-serif,system-ui,sans-serif',
+        ].join(';');
+        card.textContent = '🍕 Catching up with the host…';
+        root.appendChild(card);
+    };
+    const uncover = () => doc.querySelector(`[${COVER}]`)?.remove();
+
     const player = () => {
         const root = doc.querySelector('#dv-web-player');
         if (!root || !visible(root)) return null;
@@ -172,6 +189,7 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
             if (!r) return null;
             const { v } = r;
             const jumping = Date.now() < jumpingUntil;
+            if (!jumping) uncover();
             return { positionSec: clock.toContent(v.currentTime), paused: v.paused, rate: 1, buffering: jumping || (!v.paused && v.readyState < 3), inAd: r.inAd };
         },
         play: () => { void player()?.play().catch(() => {}); },
@@ -187,9 +205,14 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
             // "Video not available". Small nudges are fine; big jumps go through Prime's own arrow keys,
             // one press per 10 s, spaced out (a burst counts as a single press).
             if (Math.abs(delta) < PRIME_STEP_SEC) {
+                uncover();
                 v.currentTime = clock.toStream(sec);
                 return;
             }
+            // Paused and covered while Prime hops, so it looks like one "catching up" step;
+            // the follower presses play again once the jump has settled (if the host is playing).
+            v.pause();
+            cover(root);
             let presses = Math.round(Math.abs(delta) / PRIME_STEP_SEC);
             jumpingUntil = Date.now() + presses * PRIME_PRESS_MS + PRIME_SETTLE_MS;
             const step = () => {

@@ -92,6 +92,19 @@ describe('Prime Video adapter', () => {
             expect(prime.snapshot()!.buffering).toBe(false);
         });
 
+        it('pauses and covers the player while it jumps, then uncovers it', () => {
+            const p = page();
+            const prime = createPrimeAdapter(document, loc(), always);
+            p.episode.currentTime = 100;
+            prime.snapshot();
+            prime.seek(200);
+            expect(p.episode.paused).toBe(true);
+            expect(document.querySelector('[data-wpp-catching-up]')?.textContent).toContain('Catching up with the host');
+            vi.advanceTimersByTime(10 * 300 + 2000);
+            prime.snapshot();
+            expect(document.querySelector('[data-wpp-catching-up]')).toBeNull();
+        });
+
         it('jumps back with ←, and a new jump replaces one in progress', () => {
             const p = page();
             const prime = createPrimeAdapter(document, loc(), always);
