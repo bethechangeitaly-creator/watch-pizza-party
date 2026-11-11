@@ -8,7 +8,11 @@
  */
 
 let audioCtx: AudioContext | null = null;
+import { loudnessSettings } from './lib/loudness';
+
 let gainNode: GainNode | null = null;
+let compressor: DynamicsCompressorNode | null = null;
+let currentGain = 1;
 let limiter: DynamicsCompressorNode | null = null;
 let analyser: AnalyserNode | null = null;
 let inputAnalyser: AnalyserNode | null = null;
@@ -19,6 +23,7 @@ let capturedTabId: number | null = null;
 function stopCapture() {
     try { sourceNode?.disconnect(); } catch { /* ignore */ }
     try { gainNode?.disconnect(); } catch { /* ignore */ }
+    try { compressor?.disconnect(); } catch { /* ignore */ }
     try { limiter?.disconnect(); } catch { /* ignore */ }
     try { analyser?.disconnect(); } catch { /* ignore */ }
     try {
@@ -33,6 +38,7 @@ function stopCapture() {
     }
     audioCtx = null;
     gainNode = null;
+    compressor = null;
     limiter = null;
     analyser = null;
     inputAnalyser = null;
@@ -52,6 +58,19 @@ function levelDb(node: AnalyserNode | null): number | null {
     return rms > 0 ? 20 * Math.log10(rms) : -Infinity;
 }
 
+/** Boost = compressor (evens the film out) + make-up gain; see lib/loudness.ts. Smoothed to avoid clicks. */
+function applyGain(gain: number, immediate: boolean) {
+    if (!audioCtx || !gainNode || !compressor) return;
+    currentGain = gain;
+    const s = loudnessSettings(gain);
+    const at = audioCtx.currentTime;
+    const set = (param: AudioParam, value: number) => (immediate ? (param.value = value) : param.setTargetAtTime(value, at, 0.05));
+    set(compressor.threshold, s.threshold);
+    set(compressor.ratio, s.ratio);
+    set(compressor.knee, s.knee);
+    set(gainNode.gain, s.makeup);
+}
+
 async function startCapture(streamId: string, tabId: number | null, gain: number): Promise<{ ok: boolean; error?: string }> {
     // Clean up any existing capture first
     stopCapture();
@@ -69,8 +88,11 @@ async function startCapture(streamId: string, tabId: number | null, gain: number
         // Full-quality processing even when the output device prefers a low rate (e.g. a headset in call mode).
         audioCtx = new AudioContext({ sampleRate: 48000 });
         sourceNode = audioCtx.createMediaStreamSource(mediaStream);
+        compressor = audioCtx.createDynamicsCompressor();
+        compressor.attack.value = 0.005;
+        compressor.release.value = 0.25;
         gainNode = audioCtx.createGain();
-        gainNode.gain.value = gain;
+        applyGain(gain, true);
 
         // Only a safety limiter right below full scale: it catches peaks that would crackle,
         // but leaves everything else as loud as the gain makes it (like 1.2's plain gain).
@@ -86,7 +108,8 @@ async function startCapture(streamId: string, tabId: number | null, gain: number
         inputAnalyser.fftSize = 2048;
         sourceNode.connect(inputAnalyser);
 
-        sourceNode.connect(gainNode);
+        sourceNode.connect(compressor);
+        compressor.connect(gainNode);
         gainNode.connect(limiter);
         limiter.connect(audioCtx.destination);
         limiter.connect(analyser);
@@ -113,7 +136,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message.type === 'OFFSCREEN_SET_GAIN') {
         if (gainNode) {
-            gainNode.gain.value = message.gain;
+            applyGain(message.gain, false);
             console.log('[WatchParty Offscreen] Updated gain to', message.gain);
         } else {
             console.warn('[WatchParty Offscreen] Cannot update gain - no active capture');
@@ -129,7 +152,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     if (message.type === 'OFFSCREEN_PING') {
-        sendResponse({ ok: true, capturing: Boolean(audioCtx && gainNode), tabId: capturedTabId, contextState: audioCtx?.state ?? null, gain: gainNode?.gain.value ?? null, levelDb: levelDb(analyser), inputDb: levelDb(inputAnalyser), sampleRate: audioCtx?.sampleRate ?? null });
+        sendResponse({ ok: true, capturing: Boolean(audioCtx && gainNode), tabId: capturedTabId, contextState: audioCtx?.state ?? null, gain: gainNode ? currentGain : null, levelDb: levelDb(analyser), inputDb: levelDb(inputAnalyser), sampleRate: audioCtx?.sampleRate ?? null });
         return true;
     }
 });

@@ -254,6 +254,7 @@ export function Room(props: RoomProps) {
                     entries={props.entries}
                     meUserId={me?.userId ?? null}
                     soundsEnabled={props.soundsEnabled}
+                    isHost={session.isHost}
                     onSend={(text) => void send({ type: 'chat.send', text })}
                     serverUrl={session.serverUrl}
                     gifsAvailable={props.gifsAvailable}

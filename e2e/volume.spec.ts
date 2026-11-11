@@ -40,7 +40,8 @@ test('volume boost captures the video tab and changes the gain', async () => {
         }
         console.log('BOOST dB', JSON.stringify(results));
         expect(Math.abs(results['100%'])).toBeLessThan(1); // 100 % leaves the sound unchanged
-        expect(results['600%']).toBeGreaterThan(12);
+        expect(results['400%']).toBeGreaterThan(12);
+        expect(results['600%']).toBeGreaterThan(18); // loud mode: well beyond a plain 6× gain (+15.6 dB)
     } finally {
         await host.context.close();
     }

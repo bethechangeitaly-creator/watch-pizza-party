@@ -3,7 +3,7 @@ import type { TimelineEntry } from '../lib/messages';
 import { entryKey } from '../lib/timeline';
 import { gifFromText, groupEntries } from './chatModel';
 import { Composer } from './Composer';
-import { playReceiveTone } from './sounds';
+import { playTone, requestTone } from './sounds';
 import { bubbleTint } from './tint';
 import { Avatar } from './ui/Avatar';
 
@@ -14,6 +14,7 @@ export function Chat(props: {
     entries: TimelineEntry[];
     meUserId: string | null;
     soundsEnabled: boolean;
+    isHost: boolean;
     onSend: (text: string) => void;
     serverUrl: string;
     gifsAvailable: boolean;
@@ -23,17 +24,27 @@ export function Chat(props: {
     const listRef = useRef<HTMLDivElement>(null);
     const wasNearBottom = useRef(true);
     const [unseen, setUnseen] = useState(false);
-    const lastKey = useRef<string | null>(null);
-
-    // Chime for new messages from others (never for the history loaded on open).
+    // Entries already on screen when the panel opened never chime; everything after does (1.2 sounds).
+    const heard = useRef<Set<string> | null>(null);
     useEffect(() => {
-        const last = entries[entries.length - 1];
-        const key = last ? entryKey(last) : null;
-        if (lastKey.current !== null && key !== lastKey.current && last?.kind === 'chat' && last.message.userId !== meUserId && props.soundsEnabled) {
-            playReceiveTone();
+        if (heard.current === null) {
+            heard.current = new Set(entries.map(entryKey));
+            return;
         }
-        lastKey.current = key;
-    }, [entries, meUserId, props.soundsEnabled]);
+        for (const entry of entries) {
+            const key = entryKey(entry);
+            if (heard.current.has(key)) continue;
+            heard.current.add(key);
+            if (!props.soundsEnabled) continue;
+            if (entry.kind === 'chat' && entry.message.userId !== meUserId) playTone('receive');
+            if (entry.kind === 'system' && entry.event.kind === 'request' && props.isHost) playTone(requestTone(entry.event.text));
+        }
+    }, [entries, meUserId, props.soundsEnabled, props.isHost]);
+
+    const send = (text: string) => {
+        if (props.soundsEnabled) playTone('send');
+        props.onSend(text);
+    };
 
     useLayoutEffect(() => {
         const el = listRef.current;
@@ -60,7 +71,7 @@ export function Chat(props: {
                 {rows.map((row) => {
                     if (row.kind === 'system') {
                         return (
-                            <p key={row.key} className="mx-auto max-w-full truncate rounded-full bg-surface-2 px-3 py-1 text-meta text-muted">
+                            <p key={row.key} className="mx-auto max-w-[90%] shrink-0 break-words rounded-control bg-surface-2 px-3 py-1 text-center text-meta text-muted">
                                 {row.text}
                             </p>
                         );
@@ -69,7 +80,7 @@ export function Chat(props: {
                     const dark = bubbleTint(row.avatarColor, 'dark');
                     const vars = { '--tl': light.background, '--td': dark.background, '--nl': light.name, '--nd': dark.name } as CSSProperties;
                     return (
-                        <article key={row.key} className={`flex gap-2 ${row.mine ? 'flex-row-reverse' : ''}`} style={vars}>
+                        <article key={row.key} className={`flex shrink-0 gap-2 ${row.mine ? 'flex-row-reverse' : ''}`} style={vars}>
                             {!row.mine && <Avatar name={row.username} color={row.avatarColor} />}
                             <div className={`flex min-w-0 max-w-[85%] flex-col gap-1 ${row.mine ? 'items-end' : 'items-start'}`}>
                                 <header className="flex items-baseline gap-2 px-1">
@@ -116,7 +127,7 @@ export function Chat(props: {
                     New messages
                 </button>
             )}
-            <Composer onSend={props.onSend} serverUrl={props.serverUrl} gifsAvailable={props.gifsAvailable} />
+            <Composer onSend={send} serverUrl={props.serverUrl} gifsAvailable={props.gifsAvailable} />
         </section>
     );
 }

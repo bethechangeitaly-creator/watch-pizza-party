@@ -8,6 +8,7 @@ import { Room } from './Room';
 import { SECTIONS_KEY, mergeSections, type SectionId, type SectionState } from './sections';
 import { applyTheme, loadThemePref, saveThemePref, type ThemePref } from './theme';
 import { useServerStatus } from './serverStatus';
+import { unlockAudio } from './sounds';
 import { useSession } from './useSession';
 
 const SOUNDS_KEY = 'wpp.sounds';
@@ -34,6 +35,8 @@ export function App() {
         void chrome.storage.local.get(SOUNDS_KEY).then((stored) => setSoundsEnabled(stored[SOUNDS_KEY] !== false));
 
         refreshActiveTab();
+        // Chrome only lets a page play sound after the user has clicked in it.
+        window.addEventListener('pointerdown', unlockAudio);
         const onActivated = () => refreshActiveTab();
         const onUpdated = (_id: number, change: chrome.tabs.TabChangeInfo) => {
             if (change.url || change.title || change.status === 'complete') refreshActiveTab();
@@ -43,6 +46,7 @@ export function App() {
         return () => {
             chrome.tabs.onActivated.removeListener(onActivated);
             chrome.tabs.onUpdated.removeListener(onUpdated);
+            window.removeEventListener('pointerdown', unlockAudio);
         };
     }, [refreshActiveTab]);
 
