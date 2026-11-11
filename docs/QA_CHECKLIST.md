@@ -8,6 +8,17 @@
 - [ ] Host moves to the next episode: viewer follows
 - [ ] Netflix ad tier (if available): viewer holds while the host is in an ad and catches up after
 
+## Prime Video (DRM — test with a real person, each in their own Chrome)
+- [ ] Host on a Prime Video episode → **Create a Pizza Party**: Chrome asks for primevideo.com access once; Allow → status "You're the host", Now Playing shows "Prime Video" and "Title · S1 E1 …"
+- [ ] Refuse the access prompt: the sidebar explains and does not start; trying again asks again
+- [ ] Viewer joins from any tab: "Allow Prime Video" appears → Allow → the same episode opens (primevideo.com/detail/…?autoplay=1) and jumps to the host's position
+- [ ] Ads: when the host gets an ad, the viewer waits ("Waiting for the host's ad"); when the viewer gets their own ad, they catch up afterwards. After any ad, both players show the same time (±2 s)
+- [ ] Host pauses, plays, jumps forward and back: the viewer follows within a few seconds
+- [ ] Host picks another episode from the page: the viewer goes to that episode
+- [ ] Host lets Prime go to the next episode by itself (or presses "Next Episode"): note whether the viewer follows — the web address may not change
+- [ ] Prime on an Amazon store (e.g. amazon.it/gp/video/…): hosting asks for that store's access too; viewers are still sent to primevideo.com
+- [ ] Existing users updating from 2.0 without Prime: no new permission prompt, extension stays on
+
 ## YouTube extras
 - [ ] Viewer gets a pre-roll ad the host didn't: no fighting during the ad, viewer catches up after
 - [ ] Host browses YouTube home/search between videos: viewers are not moved
@@ -32,7 +43,7 @@
 - [ ] Bubble stays visible in fullscreen
 
 ## Panel
-- [ ] Theme: System / Light / Dark; system follows the OS switch live
-- [ ] Volume boost 100→300 %: audio louder without clipping; never switches tabs; stops when leaving
+- [ ] Theme: Night (default) / Light toggle
+- [ ] Volume boost 0→600 % (sidebar and toolbar popup): clearly louder, no crackling; never switches tabs; stops when leaving
 - [ ] Invite: copy code, copy invite, WhatsApp, Email
 - [ ] Incognito (split mode): a party in incognito doesn't affect the regular window
