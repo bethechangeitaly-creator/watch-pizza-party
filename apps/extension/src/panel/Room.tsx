@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { PanelRequest, PanelResponse, PublicSession, TimelineEntry } from '../lib/messages';
 import { AboutSheet } from './AboutSheet';
+import { Chat } from './Chat';
 import { MenuSheet } from './MenuSheet';
 import { PeopleSheet } from './PeopleSheet';
 import { RoomHeader } from './RoomHeader';
@@ -26,6 +27,9 @@ export type RoomProps = {
     onThemeChange: (p: ThemePref) => void;
     soundsEnabled: boolean;
     onSoundsChange: (on: boolean) => void;
+    gifsAvailable: boolean;
+    donate: boolean;
+    onDonateClose: () => void;
 };
 
 export function Room(props: RoomProps) {
@@ -56,7 +60,16 @@ export function Room(props: RoomProps) {
                 <span className="truncate">{nowPlaying}</span>
             </div>
 
-            <section aria-label="Chat" className="min-h-0 flex-1" />
+            <Chat
+                entries={props.entries}
+                meUserId={session.me?.userId ?? null}
+                soundsEnabled={props.soundsEnabled}
+                onSend={(text) => void send({ type: 'chat.send', text })}
+                serverUrl={session.serverUrl}
+                gifsAvailable={props.gifsAvailable}
+                donate={props.donate}
+                onDonateClose={props.onDonateClose}
+            />
 
             <MenuSheet
                 open={sheet === 'menu'}

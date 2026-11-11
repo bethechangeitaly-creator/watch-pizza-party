@@ -11,7 +11,8 @@ function props(over: Partial<Parameters<typeof Room>[0]> = {}) {
     const send = vi.fn(async (_r: PanelRequest): Promise<PanelResponse> => ({ ok: true, state: session }));
     return {
         session, entries: [], send, activeTabId: 1, extensionId: 'abc', version: '2.0.0',
-        themePref: 'system' as const, onThemeChange: vi.fn(), soundsEnabled: true, onSoundsChange: vi.fn(), ...over,
+        themePref: 'system' as const, onThemeChange: vi.fn(), soundsEnabled: false, onSoundsChange: vi.fn(),
+        gifsAvailable: false, donate: false, onDonateClose: vi.fn(), ...over,
     };
 }
 
@@ -20,6 +21,7 @@ describe('Room', () => {
         const user = userEvent.setup();
         render(<Room {...props()} />);
         expect(screen.getByText('In sync')).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
         expect(screen.queryByRole('slider', { name: 'Volume boost' })).toBeNull();
         await user.click(screen.getByRole('button', { name: 'Menu' }));
         expect(screen.getByRole('dialog', { name: 'Menu' })).toBeVisible();
