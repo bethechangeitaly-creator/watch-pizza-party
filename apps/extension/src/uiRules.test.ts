@@ -32,7 +32,7 @@ export function violations(targets: string[]): string[] {
 }
 
 describe('UI rules', () => {
-    it('panel code follows the UI rules', () => {
-        expect(violations(['src/panel', 'src/index.css'])).toEqual([]);
+    it('all extension code follows the UI rules', () => {
+        expect(violations(['src'])).toEqual([]);
     });
 });
