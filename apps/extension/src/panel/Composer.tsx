@@ -56,7 +56,7 @@ export function Composer({ onSend, serverUrl, gifsAvailable }: { onSend: (text: 
                     rows={1}
                     value={text}
                     maxLength={LIMITS.chatMax}
-                    placeholder="Message"
+                    placeholder="Say something nice…"
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -66,9 +66,16 @@ export function Composer({ onSend, serverUrl, gifsAvailable }: { onSend: (text: 
                     }}
                     className="min-h-8 flex-1 resize-none rounded-control bg-surface-2 px-3 py-[7px] text-body text-text placeholder:text-muted/70"
                 />
-                <IconButton label="Send" onClick={submit} disabled={!text.trim()}>
-                    <Send size={16} />
-                </IconButton>
+                <button
+                    type="button"
+                    aria-label="Send"
+                    title="Send"
+                    onClick={submit}
+                    disabled={!text.trim()}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-strong text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-40"
+                >
+                    <Send size={15} />
+                </button>
             </div>
             {text.length >= COUNTER_FROM && (
                 <p className="self-end text-meta text-muted">{text.length}/{LIMITS.chatMax}</p>

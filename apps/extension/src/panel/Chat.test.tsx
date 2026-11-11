@@ -28,6 +28,12 @@ describe('Chat', () => {
         expect(screen.getByRole('img', { name: 'GIF' })).toHaveAttribute('src', 'https://media1.giphy.com/media/a/200.gif');
     });
 
+    it('draws my own messages in the accent bubble and others in a tint', () => {
+        render(<Chat {...props({ entries: [msg('u1', 'Luca', 0, 'mine'), msg('u2', 'Marco', 1, 'theirs')] })} />);
+        expect(screen.getByText('mine').closest('[data-bubble]')).toHaveClass('bg-accent-strong');
+        expect(screen.getByText('theirs').closest('[data-bubble]')).not.toHaveClass('bg-accent-strong');
+    });
+
     it('labels my own messages as You', () => {
         render(<Chat {...props({ entries: [msg('u1', 'Luca', 0, 'mine')] })} />);
         expect(screen.getByText('You')).toBeInTheDocument();
