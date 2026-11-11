@@ -56,7 +56,10 @@ export async function connectClient(url: string): Promise<TestClient> {
                     const hit = received.find((m) => m.type === type && !consumed.has(m)
                         && (!pred || pred(m.payload as never)));
                     if (!hit) return false;
-                    consumed.add(hit);
+                    // Cursor semantics: everything of this type up to the hit is now behind us.
+                    for (const m of received.slice(0, received.indexOf(hit) + 1)) {
+                        if (m.type === type) consumed.add(m);
+                    }
                     waiters.delete(check);
                     clearTimeout(timer);
                     resolve(hit.payload as never);

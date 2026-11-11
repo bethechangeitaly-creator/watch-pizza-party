@@ -42,10 +42,30 @@ export function setupSocketHandlers(io: Server, store: RoomStore, _deps: { now: 
                         return;
                     }
                     const { ok: _ok, resumed, ...credentials } = outcome;
+                    if (session) {
+                        if (session.roomId !== credentials.roomId) {
+                            // Joining another room leaves the previous one right away.
+                            store.removeMember(session.roomId, session.userId);
+                            socket.leave(session.roomId);
+                            broadcastRoomState(session.roomId);
+                        } else {
+                            store.detachSocket(session.roomId, session.userId);
+                        }
+                    }
                     session = { roomId: credentials.roomId, userId: credentials.userId };
+                    store.attachSocket(credentials.roomId, credentials.userId);
                     socket.join(credentials.roomId);
                     send(socket, { type: 'room.joined', payload: { ...credentials, resumed } });
                     broadcastRoomState(credentials.roomId);
+                    return;
+                }
+                case 'room.leave': {
+                    if (!session) return;
+                    const { roomId, userId } = session;
+                    session = null;
+                    store.removeMember(roomId, userId);
+                    socket.leave(roomId);
+                    broadcastRoomState(roomId);
                     return;
                 }
                 default:
@@ -66,5 +86,14 @@ export function setupSocketHandlers(io: Server, store: RoomStore, _deps: { now: 
             }
             handle(parsed.data);
         });
+
+        socket.on('disconnect', () => {
+            if (!session) return;
+            store.detachSocket(session.roomId, session.userId);
+            broadcastRoomState(session.roomId);
+            session = null;
+        });
     });
+
+    return { broadcastRoomState };
 }

@@ -41,9 +41,12 @@ export function createApp(opts: AppOptions = {}) {
         res.json(store.createRoom(parsed.data.username));
     });
 
-    setupSocketHandlers(io, store, { now });
+    const sockets = setupSocketHandlers(io, store, { now });
 
-    const runSweep = () => {};
+    const runSweep = () => {
+        const result = store.sweep();
+        for (const roomId of result.changedRoomIds) sockets.broadcastRoomState(roomId);
+    };
     const sweepTimer = sweepIntervalMs > 0 ? setInterval(runSweep, sweepIntervalMs) : null;
 
     const close = () => new Promise<void>((resolve) => {
