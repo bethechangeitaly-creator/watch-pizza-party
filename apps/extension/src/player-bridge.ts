@@ -82,43 +82,9 @@
         return video instanceof HTMLVideoElement ? video : null;
     }
 
-    function getYouTubeState(): BridgeResponsePayload {
-        const player = getYouTubePlayer();
-        const video = getYouTubeVideo();
-
-        const playerState = typeof player?.getPlayerState === 'function'
-            ? safeNumber(player.getPlayerState())
-            : null;
-
-        const playerTime = typeof player?.getCurrentTime === 'function'
-            ? safeNumber(player.getCurrentTime())
-            : null;
-        const videoTime = safeNumber(video?.currentTime);
-        const timeSeconds = Math.max(0, playerTime ?? videoTime ?? 0);
-
-        const playerRate = typeof player?.getPlaybackRate === 'function'
-            ? safeNumber(player.getPlaybackRate())
-            : null;
-        const videoRate = safeNumber(video?.playbackRate);
-        const playbackRate = Math.max(0.25, Math.min(4, playerRate ?? videoRate ?? 1));
-
-        const pausedFromState = playerState === null ? null : playerState !== 1 && playerState !== 3;
-        const paused = pausedFromState ?? Boolean(video?.paused ?? true);
-        const loading = playerState === 3;
-        const watchingAds = Boolean(
-            document.querySelector('.ad-showing, .ytp-ad-text, .ytp-ad-simple-ad-badge, .ytp-ad-player-overlay')
-        );
-
-        return { timeSeconds, paused, playbackRate, loading, watchingAds };
-    }
-
     function handleYouTubeCommand(command: string, payload?: Record<string, unknown> | null): BridgeRouteResult {
         const player = getYouTubePlayer();
         const video = getYouTubeVideo();
-
-        if (command === 'youtube.state') {
-            return { handled: true, payload: getYouTubeState() };
-        }
 
         if (command === 'youtube.play') {
             if (typeof player?.playVideo === 'function') {

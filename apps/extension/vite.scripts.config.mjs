@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Builds ONE classic (IIFE) script per run: SCRIPT_ENTRY=content | player-bridge.
 const ENTRIES = {
-    content: 'src/content.ts',
+    content: 'src/content/index.ts',
     'player-bridge': 'src/player-bridge.ts',
 };
 
