@@ -60,6 +60,7 @@ export function createApp(opts: AppOptions = {}) {
 
     const runSweep = () => {
         const result = store.sweep();
+        for (const { roomId, ...removal } of result.removals) sockets.announceRemoval(roomId, removal);
         for (const roomId of result.changedRoomIds) sockets.broadcastRoomState(roomId);
     };
     const sweepTimer = sweepIntervalMs > 0 ? setInterval(runSweep, sweepIntervalMs) : null;

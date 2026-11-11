@@ -154,7 +154,12 @@ export class RoomStore {
             timestamp: this.now(),
         };
         record.chat.push(message);
+        if (record.chat.length > LIMITS.historySize) record.chat.splice(0, record.chat.length - LIMITS.historySize);
         return message;
+    }
+
+    getChatHistory(roomId: string): ChatMessage[] {
+        return [...(this.rooms.get(roomId)?.chat ?? [])];
     }
 
     isHost(roomId: string, userId: string): boolean {

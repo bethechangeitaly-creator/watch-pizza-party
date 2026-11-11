@@ -8,7 +8,8 @@ import {
     type ErrorCode,
     type ServerMessage,
 } from '@watch-party/shared';
-import type { RoomStore } from './roomStore';
+import type { RemovalResult, RoomStore } from './roomStore';
+import { systemEvent } from './systemEvents';
 import { IP_LIMITS, KeyedLimiter, SOCKET_LIMITS, TokenBucket, clientIp } from './rateLimit';
 
 const ERROR_TEXT: Record<'room_not_found' | 'room_full', string> = {
@@ -29,6 +30,21 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
     const broadcastRoomState = (roomId: string) => {
         const room = store.getPublicRoom(roomId);
         if (room) broadcast(roomId, { type: 'room.state', payload: room });
+    };
+    const announce = (roomId: string, kind: Parameters<typeof systemEvent>[0], text: string, user?: { id: string; username: string }) =>
+        broadcast(roomId, { type: 'system.event', payload: systemEvent(kind, text, deps.now(), user) });
+    const announceRemoval = (roomId: string, removal: RemovalResult | null) => {
+        if (!removal) return;
+        announce(roomId, 'leave', `${removal.removed.username} left`, removal.removed);
+        if (removal.newHost) {
+            announce(roomId, 'host_change', `${removal.newHost.username} is now the host`, removal.newHost);
+        }
+    };
+    const leaveRoom = (socket: Socket, roomId: string, userId: string) => {
+        const removal = store.removeMember(roomId, userId);
+        socket.leave(roomId);
+        announceRemoval(roomId, removal);
+        broadcastRoomState(roomId);
     };
 
     io.on('connection', (socket) => {
@@ -64,9 +80,7 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
                     if (session) {
                         if (session.roomId !== credentials.roomId) {
                             // Joining another room leaves the previous one right away.
-                            store.removeMember(session.roomId, session.userId);
-                            socket.leave(session.roomId);
-                            broadcastRoomState(session.roomId);
+                            leaveRoom(socket, session.roomId, session.userId);
                         } else {
                             store.detachSocket(session.roomId, session.userId);
                         }
@@ -75,6 +89,11 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
                     store.attachSocket(credentials.roomId, credentials.userId);
                     socket.join(credentials.roomId);
                     send(socket, { type: 'room.joined', payload: { ...credentials, resumed } });
+                    send(socket, { type: 'chat.history', payload: { messages: store.getChatHistory(credentials.roomId) } });
+                    if (!resumed) {
+                        announce(credentials.roomId, 'join', `${credentials.username} joined`,
+                            { id: credentials.userId, username: credentials.username });
+                    }
                     broadcastRoomState(credentials.roomId);
                     return;
                 }
@@ -82,9 +101,7 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
                     if (!session) return;
                     const { roomId, userId } = session;
                     session = null;
-                    store.removeMember(roomId, userId);
-                    socket.leave(roomId);
-                    broadcastRoomState(roomId);
+                    leaveRoom(socket, roomId, userId);
                     return;
                 }
                 case 'chat.send': {
@@ -124,5 +141,5 @@ export function setupSocketHandlers(io: Server, store: RoomStore, deps: { now: (
         });
     });
 
-    return { broadcastRoomState };
+    return { broadcastRoomState, announceRemoval };
 }
