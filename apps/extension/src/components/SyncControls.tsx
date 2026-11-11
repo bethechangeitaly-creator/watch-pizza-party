@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Room } from '@watch-party/shared';
+import { LegacyRoom as Room } from '@watch-party/shared';
 import { Socket } from 'socket.io-client';
 import { Play, Pause, ShieldCheck, Activity } from 'lucide-react';
 

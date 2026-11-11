@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { Room, User, ChatMessage, generateRandomName, SyncProfile } from '@watch-party/shared';
+import { LegacyRoom as Room, LegacyUser as User, LegacyChatMessage as ChatMessage, generateLegacyRandomName as generateRandomName, LegacySyncProfile as SyncProfile } from '@watch-party/shared';
 
 type InitialMediaState = {
     url?: string;

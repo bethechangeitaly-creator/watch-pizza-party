@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { Platform, Room, SyncProfile, WSMessage, WSMessageSchema } from '@watch-party/shared';
+import { Platform, LegacyRoom as Room, LegacySyncProfile as SyncProfile, WSMessage, WSMessageSchema } from '@watch-party/shared';
 
 const DEFAULT_SERVER_URL = 'https://watch-pizza-party.onrender.com';
 const SERVER_URL_STORAGE_KEY = 'watchparty_server_url';

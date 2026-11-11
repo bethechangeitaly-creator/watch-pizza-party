@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Room, SyncProfile, WSMessage } from '@watch-party/shared';
+import { LegacyRoom as Room, LegacySyncProfile as SyncProfile, WSMessage } from '@watch-party/shared';
 import { Chat } from './Chat';
 import { CreditsModal } from './CreditsModal';
 import { LogOut, Copy, Crown, Users, RefreshCw, AlertCircle, AlertTriangle, Minimize2, Volume2, VolumeX, Mail, MessageCircle, Sun, Moon, SkipBack, Pause, Play, SkipForward, ChevronRight, ChevronDown, X, Power, Heart } from 'lucide-react';

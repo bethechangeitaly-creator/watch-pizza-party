@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Landing } from './components/Landing';
 import { RoomView } from './components/RoomView';
-import { Room, SyncProfile, WSMessage, WSMessageSchema } from '@watch-party/shared';
+import { LegacyRoom as Room, LegacySyncProfile as SyncProfile, WSMessage, WSMessageSchema } from '@watch-party/shared';
 
 type SessionStatePayload = {
     active: boolean;

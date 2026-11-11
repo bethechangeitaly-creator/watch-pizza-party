@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { RoomManager } from './roomManager';
-import { Platform, SyncProfile, WSMessageSchema } from '@watch-party/shared';
+import { Platform, LegacySyncProfile as SyncProfile, WSMessageSchema } from '@watch-party/shared';
 
 type HostSnapshot = {
     seq: number;

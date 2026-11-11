@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Room, WSMessage } from '@watch-party/shared';
+import { LegacyRoom as Room, WSMessage } from '@watch-party/shared';
 import { Send, Info, Play, Pause, FastForward, AlertTriangle, RefreshCw, Smile, Image as ImageIcon } from 'lucide-react';
 
 interface ChatProps {

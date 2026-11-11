@@ -1,5 +1,5 @@
 import React from 'react';
-import { User } from '@watch-party/shared';
+import { LegacyUser as User } from '@watch-party/shared';
 import { Crown, User as UserIcon } from 'lucide-react';
 
 interface ParticipantListProps {
