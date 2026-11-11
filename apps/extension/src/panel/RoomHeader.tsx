@@ -13,7 +13,7 @@ export function RoomHeader(props: {
     onMinimize: () => void;
     onLeave: () => void;
     onClose: () => void;
-    onMenu: () => void;
+    onAbout: () => void;
 }) {
     const { room } = props;
     const [copied, setCopied] = useState(false);
@@ -31,7 +31,7 @@ export function RoomHeader(props: {
 
     return (
         <header className="flex h-14 shrink-0 items-center gap-0.5 px-3">
-            <button type="button" aria-label="Menu" title="About, guide and server" onClick={props.onMenu} className="shrink-0 rounded-control">
+            <button type="button" aria-label="About & Guide" title="About & Guide" onClick={props.onAbout} className="shrink-0 rounded-control">
                 <img src="/icon32.png" alt="" className="h-7 w-7 rounded-control" />
             </button>
             <span className="ml-1 shrink-0 text-meta font-bold">

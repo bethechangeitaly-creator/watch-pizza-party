@@ -44,9 +44,9 @@ test('panel screenshots', async () => {
         await host.panel.screenshot({ path: out('room-all-open-short') });
         await host.panel.getByRole('textbox', { name: 'Message' }).waitFor({ state: 'visible' });
 
-        await host.panel.getByRole('button', { name: 'Menu' }).click();
+        await host.panel.getByRole('button', { name: 'About & Guide' }).click();
         await host.panel.waitForTimeout(300);
-        await host.panel.screenshot({ path: out('menu') });
+        await host.panel.screenshot({ path: out('about') });
         await host.panel.keyboard.press('Escape');
         await toNight(host);
 

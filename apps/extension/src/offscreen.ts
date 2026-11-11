@@ -105,7 +105,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     if (message.type === 'OFFSCREEN_PING') {
-        sendResponse({ ok: true, capturing: Boolean(audioCtx && gainNode), tabId: capturedTabId });
+        sendResponse({ ok: true, capturing: Boolean(audioCtx && gainNode), tabId: capturedTabId, contextState: audioCtx?.state ?? null, gain: gainNode?.gain.value ?? null });
         return true;
     }
 });

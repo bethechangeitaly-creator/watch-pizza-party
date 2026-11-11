@@ -1,4 +1,5 @@
 import { test as base, chromium, expect, type BrowserContext, type Page } from '@playwright/test';
+import { createHash } from 'crypto';
 import * as path from 'path';
 
 export const VIDEO = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ'; // Big Buck Bunny (CC-BY)
@@ -6,7 +7,12 @@ const DIST = path.resolve(import.meta.dirname, '../apps/extension/dist');
 
 export type Member = { context: BrowserContext; extensionId: string; page: Page; panel: Page };
 
-export async function launchMember(): Promise<Member> {
+/** Chrome's id for an unpacked extension: sha256 of its path, hex mapped to a–p. */
+const unpackedId = (dir: string) =>
+    [...createHash('sha256').update(dir).digest('hex').slice(0, 32)].map((c) => String.fromCharCode(97 + parseInt(c, 16))).join('');
+
+/** allowCapture: Chromium's test switch that lets tabCapture skip the toolbar click, so volume boost can be tested. */
+export async function launchMember(opts: { allowCapture?: boolean } = {}): Promise<Member> {
     const context = await chromium.launchPersistentContext('', {
         channel: 'chromium',
         headless: true,
@@ -16,6 +22,7 @@ export async function launchMember(): Promise<Member> {
             `--load-extension=${DIST}`,
             '--autoplay-policy=no-user-gesture-required',
             '--mute-audio',
+            ...(opts.allowCapture ? [`--allowlisted-extension-id=${unpackedId(DIST)}`] : []),
         ],
     });
     // Skip YouTube's EU cookie-consent interstitial.

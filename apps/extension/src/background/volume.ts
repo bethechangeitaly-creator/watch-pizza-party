@@ -21,6 +21,8 @@ type OffscreenReply = { ok?: boolean; capturing?: boolean; tabId?: number | null
 export class VolumeBoost {
     capturingTabId: number | null = null;
     private gain = 1;
+    /** Starting a capture takes a moment; a second start meanwhile would fail ("active stream"). */
+    private starting: Promise<boolean> | null = null;
 
     /** onState(gain, readyTabId): readyTabId is the tab whose audio is being boosted, or null. */
     constructor(private readonly deps: CaptureDeps, private readonly onState: (gain: number, readyTabId: number | null) => void) {}
@@ -41,7 +43,17 @@ export class VolumeBoost {
 
     /** Start a capture at the current gain if Chrome allows it right now. Never throws. */
     async arm(tabId: number): Promise<boolean> {
+        while (this.starting) await this.starting.catch(() => false);
         if (this.capturingTabId === tabId) return true;
+        this.starting = this.start(tabId);
+        try {
+            return await this.starting;
+        } finally {
+            this.starting = null;
+        }
+    }
+
+    private async start(tabId: number): Promise<boolean> {
         if (await this.adopt(tabId)) {
             await this.deps.toOffscreen({ type: 'OFFSCREEN_SET_GAIN', gain: this.gain });
             this.report();
@@ -70,6 +82,7 @@ export class VolumeBoost {
 
     async setGain(tabId: number, gain: number): Promise<SetGainResult> {
         this.gain = clampGain(gain);
+        while (this.starting) await this.starting.catch(() => false);
         if (this.capturingTabId !== tabId) await this.adopt(tabId);
         if (this.capturingTabId === tabId) {
             await this.deps.toOffscreen({ type: 'OFFSCREEN_SET_GAIN', gain: this.gain });

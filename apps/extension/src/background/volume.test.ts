@@ -86,6 +86,20 @@ describe('VolumeBoost', () => {
         expect(boost.capturingTabId).toBe(7);
     });
 
+    it('a second request while the capture is still starting waits for it instead of failing', async () => {
+        const { boost, deps, sent } = setup();
+        let release: (() => void) | undefined;
+        (deps.ensureOffscreen as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise<void>((r) => { release = r; }));
+        const first = boost.arm(7);
+        await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+        const second = boost.setGain(7, 2);
+        release!();
+        expect(await first).toBe(true);
+        expect(await second).toEqual({ ok: true });
+        expect(deps.getStreamId).toHaveBeenCalledTimes(1);
+        expect(sent.at(-1)).toEqual({ type: 'OFFSCREEN_SET_GAIN', gain: 2 });
+    });
+
     it('clamps the gain to 1–3', async () => {
         const { boost, sent } = setup();
         await boost.setGain(7, 9);

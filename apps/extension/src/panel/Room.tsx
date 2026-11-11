@@ -6,7 +6,6 @@ import { AboutSheet } from './AboutSheet';
 import { Chat } from './Chat';
 import { DONATE_URL } from './donate';
 import { inviteText, mailtoUrl, whatsappUrl } from './invite';
-import { MenuSheet } from './MenuSheet';
 import { RoomHeader } from './RoomHeader';
 import type { ActiveTab } from './activeTab';
 import type { SectionId, SectionState } from './sections';
@@ -81,7 +80,7 @@ const CONNECTION: Record<string, { label: string; dot: string }> = {
 
 export function Room(props: RoomProps) {
     const { session, send, sections } = props;
-    const [sheet, setSheet] = useState<'menu' | 'about' | null>(null);
+    const [aboutOpen, setAboutOpen] = useState(false);
     const [confirm, setConfirm] = useState<'leave' | 'close' | null>(null);
     const [copied, setCopied] = useState(false);
     const [percent, setPercent] = useState(Math.round(session.volumeGain * 100));
@@ -128,7 +127,7 @@ export function Room(props: RoomProps) {
                 onMinimize={() => void send({ type: 'panel.minimize' }).then(() => window.close())}
                 onLeave={() => setConfirm('leave')}
                 onClose={() => setConfirm('close')}
-                onMenu={() => setSheet('menu')}
+                onAbout={() => setAboutOpen(true)}
             />
 
             {confirm === 'leave' && (
@@ -186,7 +185,6 @@ export function Room(props: RoomProps) {
                         <button type="button" aria-label="Share via WhatsApp" className={`${pill} bg-wa text-wa-fg`} onClick={() => window.open(whatsappUrl(invite), '_blank', 'noopener')}>WhatsApp</button>
                         <button type="button" aria-label="Share via Email" className={`${pill} bg-mail text-mail-fg`} onClick={() => window.open(mailtoUrl(invite), '_blank', 'noopener')}>Email</button>
                     </div>
-                    <p className="mt-2 text-meta text-muted">Or share the code <b className="text-text">{room.id}</b>.</p>
                 </Section>
 
                 <Section title="Actions" open={sections.sync} onToggle={() => props.onToggleSection('sync')}>
@@ -277,8 +275,7 @@ export function Room(props: RoomProps) {
                 />
             </div>
 
-            <MenuSheet open={sheet === 'menu'} onClose={() => setSheet(null)} serverUrl={session.serverUrl} onAbout={() => setSheet('about')} />
-            <AboutSheet open={sheet === 'about'} onClose={() => setSheet(null)} version={props.version} />
+            <AboutSheet open={aboutOpen} onClose={() => setAboutOpen(false)} version={props.version} />
         </main>
     );
 }
