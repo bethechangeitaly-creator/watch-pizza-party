@@ -108,6 +108,7 @@ const isShown = (el: Element) => {
 export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: Element) => boolean = isShown): PlayerAdapter {
     const clock = new PrimeClock();
     let lastTitle: string | undefined;
+    let titleFor: string | null = null; // which video lastTitle belongs to
     let lastOpenAt = -Infinity;
 
     const player = () => {
@@ -137,6 +138,11 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
             adRemainingSec,
             labelElapsedSec: adRemainingSec === null ? elapsedLabel() : null,
         });
+        const videoKey = `${loc.href.match(/detail\/[^/?]+/)?.[0] ?? ''}|${Math.round(v.duration)}`;
+        if (videoKey !== titleFor) {
+            titleFor = videoKey;
+            lastTitle = undefined; // another film: don't report the previous one's title
+        }
         const title = doc.querySelector('.atvwebplayersdk-title-text')?.textContent?.trim();
         const episode = (doc.querySelector('.atvwebplayersdk-subtitle-text') ?? doc.querySelector('.atvwebplayersdk-episode-info'))?.textContent?.trim();
         if (title) lastTitle = episode ? `${title} · ${episode}` : title;

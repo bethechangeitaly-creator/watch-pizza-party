@@ -12,7 +12,7 @@ import {
 } from '../lib/messages';
 import { isSupportedSite } from '@watch-party/shared';
 import { primeContentMatches } from '../lib/primeAccess';
-import { mediaKey, planViewerNavigation, shouldAcceptHostEvent } from './mediaTab';
+import { applyPrimeAlias, learnPrimeAlias, mediaKey, planViewerNavigation, type PrimeAlias, type PrimeNav, shouldAcceptHostEvent } from './mediaTab';
 import { VolumeBoost, chromeCaptureDeps } from './volume';
 import { probeContentAlive } from '../content/alive';
 import { ENTRIES_KEY, mergeEntries } from '../lib/timeline';
@@ -42,6 +42,8 @@ function sendToTab(tabId: number, message: BackgroundToContent): void {
 
 let lastTimelineKey: string | null = null; // media of the last timeline we acted on
 let justBound = false; // the media tab was just chosen (start/join/"Use this tab")
+let primeNav: PrimeNav | null = null; // the Prime film we last sent the viewer's tab to
+let primeAlias: PrimeAlias | null = null; // that film's id on the viewer's Prime, if different
 let activeContent: { tabId: number; role: 'host' | 'viewer' } | null = null;
 
 function desiredRole(state: PublicSession): 'host' | 'viewer' | null {
@@ -67,9 +69,8 @@ function syncContentActivation(state: PublicSession): void {
 function activateTab(tabId: number, role: 'host' | 'viewer'): void {
     sendToTab(tabId, { type: 'bg.activate', role });
     const timeline = controller.latestTimeline();
-    if (role === 'viewer' && timeline) {
-        sendToTab(tabId, { type: 'bg.timeline', timeline, clockOffsetMs: controller.clockOffsetMs(), force: false });
-    }
+    // Through followTimeline so a Prime alias (same film, other id) applies here too.
+    if (role === 'viewer' && timeline) void followTimeline(timeline, false);
 }
 
 async function followTimeline(timeline: Timeline, force: boolean): Promise<void> {
@@ -82,14 +83,17 @@ async function followTimeline(timeline: Timeline, force: boolean): Promise<void>
     } catch {
         return;
     }
-    const plan = planViewerNavigation({ timeline, mediaTab: { tabId, url }, previousKey: lastTimelineKey, justBound, force });
-    lastTimelineKey = mediaKey(timeline);
+    primeAlias = learnPrimeAlias({ nav: primeNav, nowMs: Date.now(), timeline, tabUrl: url }) ?? primeAlias;
+    const local = applyPrimeAlias(timeline, primeAlias);
+    const plan = planViewerNavigation({ timeline: local, mediaTab: { tabId, url }, previousKey: lastTimelineKey, justBound, force });
+    lastTimelineKey = mediaKey(local);
     justBound = false;
     if (plan.action === 'navigate') {
+        if (timeline.platform === 'prime') primeNav = { hostMediaId: timeline.mediaId, atMs: Date.now() };
         await chrome.tabs.update(plan.tabId, { url: plan.url }).catch(() => {});
         return; // The new page says hello and then receives the timeline.
     }
-    sendToTab(tabId, { type: 'bg.timeline', timeline, clockOffsetMs: controller.clockOffsetMs(), force });
+    sendToTab(tabId, { type: 'bg.timeline', timeline: local, clockOffsetMs: controller.clockOffsetMs(), force });
 }
 
 function handleTimeline(timeline: Timeline, force: boolean): void {
@@ -320,12 +324,16 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
             return ok();
         case 'session.create':
             lastTimelineKey = null;
+            primeNav = null;
+            primeAlias = null;
             await ensureContentScript(req.tabId);
             await controller.create(req.username, req.tabId, await tabTitle(req.tabId));
             void armVolumeIfAllowed(controller.state().mediaTab?.tabId);
             return ok();
         case 'session.join': {
             lastTimelineKey = null;
+            primeNav = null;
+            primeAlias = null;
             justBound = true;
             // Never turn the page the user came from (WhatsApp, Gmail…) into the video: use a new tab.
             let tabId = req.tabId;
@@ -341,6 +349,8 @@ async function handlePanelRequest(req: PanelRequest): Promise<PanelResponse> {
         }
         case 'session.leave':
             lastTimelineKey = null;
+            primeNav = null;
+            primeAlias = null;
             justBound = false;
             await controller.leave();
             return ok();

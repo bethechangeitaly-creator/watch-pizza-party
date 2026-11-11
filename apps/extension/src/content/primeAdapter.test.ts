@@ -15,7 +15,7 @@ function page(o: { open?: boolean } = {}) {
     const fake = (el: HTMLVideoElement | null, duration: number) => {
         if (!el) return null;
         const state = { currentTime: 0, paused: false };
-        Object.defineProperty(el, 'duration', { get: () => duration });
+        Object.defineProperty(el, 'duration', { get: () => duration, configurable: true });
         Object.defineProperty(el, 'currentTime', { get: () => state.currentTime, set: (v: number) => { state.currentTime = v; } });
         Object.defineProperty(el, 'paused', { get: () => state.paused });
         Object.defineProperty(el, 'readyState', { get: () => 4 });
@@ -100,5 +100,17 @@ describe('Prime Video adapter', () => {
         expect(prime.snapshot()!.paused).toBe(true);
         prime.play();
         expect(p.episode.paused).toBe(false);
+    });
+
+    it('forgets the old title when another film starts', () => {
+        const p = page();
+        const prime = createPrimeAdapter(document, loc(), always);
+        p.showControls('00:05', '55:12');
+        prime.snapshot();
+        expect(prime.title()).toBe('Carrie · S1 E1 First Period');
+        document.querySelector('#controls')!.innerHTML = '';
+        Object.defineProperty(document.querySelector('#episode')!, 'duration', { get: () => 4419 });
+        prime.snapshot();
+        expect(prime.title() ?? '').not.toMatch(/Carrie/);
     });
 });

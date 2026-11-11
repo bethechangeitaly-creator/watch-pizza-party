@@ -48,7 +48,17 @@ export function statusLine(session: PublicSession, activeTab: ActiveTab | null, 
     if (!session.mediaTab) {
         return { tone: 'warn', text: 'Pick a tab to watch in', ...(activeTab ? { action: useTab(activeTab, primeAllowed) } : {}) };
     }
-    if (!session.isHost && !primeAllowed && session.room?.timeline?.platform === 'prime') {
+    // The party tab is on Prime Video but Chrome hasn't allowed it (e.g. the party started on another
+    // site): without access the extension can't run there, so ask — for the host as much as a viewer.
+    const partyTabOnPrime = activeTab?.tabId === session.mediaTab.tabId && isPrimeVideoSite(activeTab.url);
+    if (!primeAllowed && partyTabOnPrime && session.isHost) {
+        return {
+            tone: 'warn',
+            text: 'Allow Prime Video to share what you watch',
+            action: { label: 'Allow Prime Video', request: { type: 'session.useTab', tabId: session.mediaTab.tabId }, needsPrime: true },
+        };
+    }
+    if (!session.isHost && !primeAllowed && (partyTabOnPrime || session.room?.timeline?.platform === 'prime')) {
         return {
             tone: 'warn',
             text: 'Allow Prime Video to follow the host',

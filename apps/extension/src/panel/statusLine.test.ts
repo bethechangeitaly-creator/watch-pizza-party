@@ -59,4 +59,15 @@ describe('statusLine', () => {
         expect(statusLine(session, otherSite)).toEqual({ tone: 'warn', text: 'Click once on the video to start syncing' });
         expect(statusLine({ ...session, isHost: true }, otherSite).text).not.toMatch(/Click once/);
     });
+
+    it('the host on a Prime Video tab without access gets the Allow button too (party started elsewhere)', () => {
+        const prime = { tabId: 1, url: 'https://www.primevideo.com/detail/0IXW1S25YINLVCJUNC1IJSVOOB?ref_=atv_hm_hom_c_DGe5ed62_6_2' };
+        const session = sessionWith({ isHost: true, mediaTab: { tabId: 1, title: "Prime Video: C'mon C'mon" } });
+        expect(statusLine(session, prime, false)).toEqual({
+            tone: 'warn',
+            text: 'Allow Prime Video to share what you watch',
+            action: { label: 'Allow Prime Video', request: { type: 'session.useTab', tabId: 1 }, needsPrime: true },
+        });
+        expect(statusLine(session, prime, true).text).not.toMatch(/Allow/);
+    });
 });
