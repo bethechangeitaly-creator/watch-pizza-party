@@ -74,6 +74,17 @@ describe('HostReporter', () => {
         expect(sent.at(-1)).toMatchObject({ cause: 'ad', inAd: true, positionSec: 300 });
     });
 
+    it('an ad at the start of the next video does not carry over the previous position', () => {
+        const { clock, adapter, sent, reporter } = setup();
+        adapter.snap!.positionSec = 600;
+        reporter.tick();
+        clock.advance(250);
+        adapter.mediaRef = { platform: 'youtube', mediaId: 'aqz-KE-bpKQ' };
+        adapter.snap = { positionSec: 3, paused: false, rate: 1, buffering: false, inAd: true };
+        reporter.tick();
+        expect(sent.at(-1)).toMatchObject({ cause: 'media', mediaId: 'aqz-KE-bpKQ', inAd: true, positionSec: 0 });
+    });
+
     it('host buffering holds viewers without announcing play/pause', () => {
         const { clock, adapter, sent, reporter } = setup();
         reporter.tick();

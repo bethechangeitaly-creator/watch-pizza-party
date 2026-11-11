@@ -26,6 +26,7 @@ export class HostReporter {
     private prev: HostSample | null = null;
     private lastEmitAt = -Infinity;
     private lastContentPositionSec = 0;
+    private contentMediaKey: string | null = null;
     private buffering = false;
 
     constructor(
@@ -40,6 +41,12 @@ export class HostReporter {
         if (!media || !snap) {
             this.prev = null; // Browsing (YouTube home, search…): viewers stay put.
             return;
+        }
+        const mediaKey = `${media.platform}:${media.mediaId}`;
+        if (mediaKey !== this.contentMediaKey) {
+            // New video: a pre-roll ad must not report where the previous video was.
+            this.contentMediaKey = mediaKey;
+            this.lastContentPositionSec = 0;
         }
         if (!snap.inAd) this.lastContentPositionSec = snap.positionSec;
         const sample: HostSample = {
