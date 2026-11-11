@@ -1,119 +1,64 @@
 # Privacy Policy for Watch Pizza Party
 
-**Last Updated:** February 16, 2025
+**Last Updated:** November 11, 2026 (version 2.0)
 
 ## Overview
 
-Watch Pizza Party is a Chrome extension that enables synchronized video watching with friends on Netflix and YouTube. This Privacy Policy explains what data we collect, how we use it, and your rights.
+Watch Pizza Party is a Chrome extension that lets friends watch YouTube and Netflix in sync, with a chat on the side. This policy explains what data the extension and its server handle, and for how long.
 
-## Data Collection
+## What we handle
 
-### Information We Collect
+1. **Your display name** — a random pizza-themed name (e.g. "Basil Burrata") or one you type. It is shown to the people in your room and is not linked to your identity.
+2. **A room token** — a random code the server gives you when you join, so you can reconnect as the same person. It is stored in your browser and deleted after 8 hours or when you leave the party.
+3. **Room data** — the room code, who is in the room, and the playback state of the video being watched (which YouTube or Netflix video, its position, playing or paused). This is what keeps everyone in sync.
+4. **Chat messages** — the last 100 messages of each room, so people who join later can catch up.
+5. **Your IP address** — seen by our server as part of any internet connection, and used only in memory to limit abuse (e.g. too many rooms created). It is not stored.
 
-1. **Username (Anonymous)**
-   - Randomly generated pizza-themed names (e.g., "Red_Pepperoni")
-   - Used only for identifying participants in a watch party session
-   - NOT linked to your real identity
+## What we do not collect
 
-2. **Room Participation Data**
-   - Room codes you create or join
-   - Video playback state (play/pause/current time)
-   - Chat messages sent within a room
-   - Only stored temporarily during active sessions
+- Your real name, email address or any account
+- Your browsing history or what you watch outside a party
+- Your YouTube or Netflix credentials
+- Payment information
+- Analytics, tracking or advertising identifiers
 
-3. **Server Connection Data**
-   - WebSocket connection status
-   - Server selection preference (Pizza Server or Local)
-   - Used for maintaining real-time synchronization
+## How long it is kept
 
-### Information We DO NOT Collect
+- **Everything on the server lives in memory only.** There is no database.
+- When everyone has left a room, the room — including its chat — is deleted 30 minutes later. A server restart deletes everything immediately.
+- In your browser: the room token (up to 8 hours), the chat of the current party (until you close the browser), and your preferences (theme, chat sounds, server address).
 
-- ❌ Your real name or email address
-- ❌ Your browsing history
-- ❌ Video content you watch
-- ❌ Netflix or YouTube account credentials
-- ❌ Payment information
-- ❌ Personal identifying information
+## Third parties
 
-## How We Use Your Data
+### Our server host (Render.com)
+The Pizza Server runs on Render.com. Connections are encrypted (HTTPS/WSS).
 
-1. **Real-Time Synchronization**
-   - Synchronize video playback across participants
-   - Enable chat functionality within watch parties
+### Giphy
+When you search for a GIF, your search text goes to **our server**, which asks Giphy for results — Giphy does not see your IP address for searches. The GIF images themselves are then loaded directly from Giphy's servers, so Giphy can see the IP address of everyone who sees a GIF in the chat, as with any image on the web. If the server has no Giphy key, GIF search is turned off. Giphy's privacy policy: https://support.giphy.com/hc/en-us/articles/360032872931
 
-2. **Session Management**
-   - Maintain active room connections
-   - Coordinate host/viewer roles
+### YouTube and Netflix
+The extension reads and controls the video player on YouTube and Netflix pages (play, pause, seek, position) and only on the tab you chose for the party. It does not read your account or your viewing history.
 
-3. **Server Operations**
-   - Route messages between participants
-   - Manage room lifecycle
+## Volume boost
 
-## Data Storage and Retention
+If you turn on volume boost, the extension captures the party tab's audio and plays it louder. The audio is processed on your computer only and is never sent anywhere. Capture stops when you turn the boost off, change tabs or leave the party.
 
-- **In-Memory Only**: All room data is stored in server memory (RAM)
-- **Automatic Deletion**: Rooms are deleted 5 minutes after the last participant leaves
-- **No Persistent Database**: We do not store any data permanently
-- **Chat History**: Limited to last 100 messages per room, deleted when room expires
-- **Local Storage**: Server preferences stored locally in your browser only
+## Your choices
 
-## Data Sharing
-
-- **We do NOT sell, trade, or share your data with third parties**
-- **Server Communication**: Data is transmitted only to our Pizza Server for synchronization
-- **No Analytics**: We do not use Google Analytics or similar tracking tools
-- **No Advertising**: We do not display ads or share data with advertisers
-
-## Third-Party Services
-
-### Pizza Server (Render.com)
-- Hosted on Render.com infrastructure
-- Located in Frankfurt, Germany (EU)
-- Encrypted connections (HTTPS/WSS)
-- No data persistence
-
-### Netflix and YouTube
-- Extension operates on Netflix and YouTube pages
-- We do NOT access your account credentials
-- We do NOT track what you watch
-- We only read playback state (play/pause/time) for synchronization
-
-## Your Rights
-
-You have the right to:
-- Use the extension anonymously
-- Delete your data by leaving a room
+- Use the extension without any account
+- Leave a room at any time (your token is deleted from your browser)
 - Uninstall the extension at any time
-- Use a local server instead of our Pizza Server
+- Point the extension at your own server (Advanced → Server)
 
-## Security
+## Children
 
-- **Encrypted Connections**: All communications use HTTPS and secure WebSockets (WSS)
-- **No Authentication**: No passwords or login required
-- **Room Codes**: Randomly generated, expire automatically
-- **Ephemeral Data**: All data is temporary and auto-deleted
+Watch Pizza Party is meant for a general audience and does not knowingly collect data from children under 13.
 
-## Children's Privacy
+## Changes
 
-Watch Pizza Party does not knowingly collect data from children under 13. The extension is designed for general audiences and does not require age verification.
-
-## Changes to This Policy
-
-We may update this Privacy Policy occasionally. Changes will be posted on our GitHub repository with an updated "Last Updated" date.
+Changes to this policy are published in the GitHub repository with a new "Last Updated" date.
 
 ## Contact
 
-For privacy questions or concerns:
-- **GitHub**: https://github.com/bethechangeitaly-creator/watch-pizza-party
-- **Developer**: Emanuel Caristi
-
-## Compliance
-
-This extension complies with:
-- Chrome Web Store Developer Program Policies
-- GDPR (General Data Protection Regulation)
-- CCPA (California Consumer Privacy Act)
-
----
-
-By using Watch Pizza Party, you agree to this Privacy Policy.
+- GitHub: https://github.com/bethechangeitaly-creator/watch-pizza-party
+- Developer: Emanuel Caristi

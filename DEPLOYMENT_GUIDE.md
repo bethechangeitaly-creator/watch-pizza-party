@@ -1,173 +1,69 @@
-# Watch Pizza Party - Deployment Guide
+# Watch Pizza Party — Deployment Guide (v2)
 
-## ✅ Completed: Server Configuration Updates
+Version 2 speaks **protocol v2**, which is not compatible with v1.2. The v2 extension and the v1 extension must talk to **different servers** until everyone has auto-updated. The plan below never breaks an existing user.
 
-The following changes have been made to prepare for production deployment:
+## 1. Create a new Giphy key
 
-### Server Changes (`apps/server/src/index.ts`)
-- ✅ Updated CORS to use `process.env.CORS_ORIGIN` (defaults to `*` for flexibility)
-- ✅ Added credentials support to CORS
-- ✅ Changed hardcoded join link from `https://watchparty.companion/join/{roomId}` to `Room Code: {roomId}`
-- ✅ Server builds successfully
+The v1.2 key is inside the published extension and must be treated as public.
 
-### Version Alignment
-- ✅ Root `package.json`: Updated to **1.0.2**
-- ✅ Extension `package.json`: Updated to **1.0.2**
-- ✅ Manifest.json: Already at **1.0.2**
+1. Create a new API key at https://developers.giphy.com/dashboard/ (ask for a production key — beta keys are limited to 100 requests/hour).
+2. You'll put it on the server in step 2. **Revoke the old key** only after step 5, once v1.2 users have updated (v1.2 still uses it for its GIF picker).
 
----
+## 2. Deploy the v2 server as a new service
 
-## 🚀 Next Steps: Deploy to Render
+Keep the existing `watch-pizza-party` service running untouched — v1.2 users still need it.
 
-### Step 1: Push Code to GitHub
-
-```bash
-cd "/Users/emanuelcaristi/Desktop/My Apps/WatchParty Codex"
-git add .
-git commit -m "Prepare for production deployment - Update CORS, versions, and join link"
-git push origin main
-```
-
-### Step 2: Create Render Account & Deploy
-
-1. Go to https://render.com
-2. Sign up with GitHub
-3. Click **"New +" → "Web Service"**
-4. Select your **WatchParty Codex** repository
-5. Configure:
-   - **Name**: `watch-pizza-party` (or your preference)
-   - **Environment**: **Docker**
-   - **Dockerfile Path**: `apps/server/Dockerfile`
-   - **Instance Type**: **Free** (or Starter $7/month for no cold starts)
-
-### Step 3: Set Environment Variables in Render
-
-In the Render dashboard, add these environment variables:
-
-```
-NODE_ENV=production
-PORT=3001
-```
-
-**Optional** (can add later after extension is published):
-```
-CORS_ORIGIN=chrome-extension://YOUR_EXTENSION_ID
-```
-
-### Step 4: Deploy
-
-Click **"Create Web Service"** - Render will:
-- Clone your repository
-- Build the Docker image using `apps/server/Dockerfile`
-- Deploy and provide a URL like: `https://watch-pizza-party.onrender.com`
-
-### Step 5: Note Your Server URL
-
-**IMPORTANT**: Copy the Render URL (e.g., `https://watch-pizza-party.onrender.com`)
-
-You'll need this URL for the extension configuration in the next phase.
-
----
-
-## 📋 Test Your Deployed Server
-
-Once deployed, test these endpoints:
+1. Render → **New + → Web Service** → same repository, branch with v2.
+2. Name: `watch-pizza-party-v2` (gives `https://watch-pizza-party-v2.onrender.com`).
+3. Environment: **Docker**, Dockerfile path `apps/server/Dockerfile`.
+4. Environment variables:
+   - `GIPHY_API_KEY` = the new key
+   - `ALLOWED_ORIGINS` = leave empty (extension origins are always allowed)
+5. Health check path: `/health`.
+6. Deploy, then check:
 
 ```bash
-# Health check
-curl https://YOUR-APP.onrender.com/
-
-# Create a room
-curl -X POST https://YOUR-APP.onrender.com/rooms \
-  -H "Content-Type: application/json" \
-  -d '{"hostUsername":"TestHost"}'
-
-# Response should include:
-# {"roomId":"...","hostId":"...","username":"...","joinLink":"Room Code: ..."}
+curl https://watch-pizza-party-v2.onrender.com/health
+curl -X POST https://watch-pizza-party-v2.onrender.com/rooms -H 'Content-Type: application/json' -d '{"protocolVersion":2}'
 ```
 
----
+The first returns `{"ok":true}`, the second a room with a token.
 
-## ⏭️ After Server Deployment
+**Cold starts:** on Render's free tier the server sleeps after 15 minutes without traffic and takes ~30–60 s to wake. The extension retries for up to 75 s and tells users it's waking up, but the first party of the day still waits. A paid instance (Render Starter) or a host without sleep (Fly.io, a small VPS) removes this.
 
-Once your server is live on Render, proceed to update the extension:
+## 3. Package the extension for the v2 server
 
-1. Update `apps/extension/src/background.ts` - change `DEFAULT_SERVER_URL` to your Render URL
-2. Update `apps/extension/manifest.json` - add your Render domain to `host_permissions`
-3. Build extension: `npm run build:extension`
-4. Create ZIP from `apps/extension/dist/`
-5. Submit to Chrome Web Store
+```bash
+VITE_SERVER_URL=https://watch-pizza-party-v2.onrender.com npm run package:extension
+```
 
----
+This builds, runs the dist guard and writes `release/watch-pizza-party-2.0.0.zip`.
 
-## 🔍 Monitoring & Troubleshooting
+No new permissions are requested, so Chrome updates existing installs silently. (The CORS setup means the new server URL does not need a host permission.)
 
-### Render Dashboard
-- View logs in real-time
-- Monitor CPU/memory usage
-- Check deployment status
+## 4. Publish
 
-### Common Issues
+1. Chrome Web Store Developer Dashboard → the item → **Package → Upload new package** → the zip.
+2. Update the listing text from `STORE_LISTING.md` and the privacy policy URL (`PRIVACY_POLICY.md` changed in 2.0: Giphy, tokens, volume boost).
+3. Submit for review.
 
-**Issue**: Server shows as "Deploying" for a long time
-- **Solution**: Check build logs for errors. Dockerfile might need adjustment.
+## 5. Retire v1
 
-**Issue**: Server starts but crashes
-- **Solution**: Check logs for Node.js errors. Verify environment variables are set.
+Chrome updates installed extensions within about a day of a release going live. Keep the v1 service for **14 days** after 2.0.0 is live, then delete it and revoke the old Giphy key.
 
-**Issue**: WebSocket connections fail
-- **Solution**: Render supports WebSockets automatically. Ensure you're using `wss://` not `ws://`.
+## Local development
 
-**Issue**: CORS errors in browser
-- **Solution**: Update `CORS_ORIGIN` environment variable to include your extension ID or use `*` temporarily.
+```bash
+npm install
+npm run dev:server                 # http://localhost:3005
+npm run build:extension            # default server URL baked in
+VITE_SERVER_URL=http://localhost:3005 npm run build:extension   # talk to your local server
+```
 
-### Free Tier Limitations
-- **Cold Starts**: Server spins down after 15 minutes of inactivity
-- **Spin-up Time**: ~30 seconds to start when inactive
-- **Upgrade**: $7/month for always-on service
+Or set the server inside the extension: Landing → **Advanced** → Server.
 
----
+### Docker
 
-## 📝 Next Phase Checklist
-
-After server deployment, you need to:
-
-- [ ] Server deployed to Render and responding to requests
-- [ ] Server URL noted (e.g., `https://watch-pizza-party.onrender.com`)
-- [ ] Update extension `background.ts` with production server URL
-- [ ] Update manifest.json with Render domain in `host_permissions`
-- [ ] Build extension
-- [ ] Create privacy policy (Phase 1)
-- [ ] Capture 5 screenshots (Phase 1)
-- [ ] Write detailed store description (Phase 1)
-- [ ] Submit to Chrome Web Store (Phase 4)
-
----
-
-## 🎯 Server Configuration Summary
-
-| Setting | Value |
-|---------|-------|
-| **Hosting** | Render.com |
-| **Plan** | Free tier (can upgrade to $7/month) |
-| **Runtime** | Node.js 20 via Docker |
-| **Port** | 3001 |
-| **SSL** | Automatic (HTTPS) |
-| **Domain** | `*.onrender.com` subdomain |
-| **Storage** | In-memory (no database) |
-| **CORS** | Configurable via env var |
-
----
-
-## 📞 Support Resources
-
-- **Render Docs**: https://render.com/docs
-- **Render Community**: https://community.render.com
-- **WebSocket Support**: https://render.com/docs/web-services#websocket-support
-- **Docker Deployments**: https://render.com/docs/docker
-
----
-
-**Date Prepared**: $(date)
-**Version**: 1.0.2
-**Status**: Ready for deployment
+```bash
+GIPHY_API_KEY=... docker compose up --build    # http://localhost:3001
+```

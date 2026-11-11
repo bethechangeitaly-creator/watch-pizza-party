@@ -8,8 +8,8 @@
 - [ ] Email verified
 
 ### 2. Extension Files
-- [ ] Extension built (`npm run build:extension`)
-- [ ] ZIP file created from `apps/extension/dist/` folder
+- [ ] Extension packaged for the production server: `VITE_SERVER_URL=https://<v2 server> npm run package:extension`
+- [ ] ZIP is `release/watch-pizza-party-2.0.0.zip`
 - [ ] ZIP file is under 100MB
 - [ ] All icons present (16x16, 32x32, 48x48, 128x128)
 - [ ] manifest.json has correct version number
@@ -31,15 +31,15 @@
 ### 5. Manifest.json Review
 - [ ] Name: "Watch Pizza Party"
 - [ ] Description is clear and concise
-- [ ] Version: 1.0.2 (or current version)
+- [ ] Version: 2.0.0
 - [ ] Manifest version: 3
 - [ ] Icons paths correct
 - [ ] Permissions justified
 - [ ] Host permissions minimal (only netflix.com, youtube.com)
 
 ### 6. Code Quality
-- [ ] No console.log statements in production code
-- [ ] No hardcoded credentials or secrets
+- [ ] `npm test` and `npm run e2e` pass
+- [ ] No hardcoded credentials or secrets (the Giphy key lives on the server only)
 - [ ] All npm packages up to date
 - [ ] TypeScript compiles without errors
 - [ ] No ESLint errors
@@ -50,11 +50,11 @@
 - [ ] Test chat functionality
 - [ ] Test Netflix synchronization
 - [ ] Test YouTube synchronization
-- [ ] Test server status indicator
 - [ ] Test all buttons and features
 - [ ] Test in incognito mode
 - [ ] Test volume boost feature
-- [ ] Test light/dark mode toggle
+- [ ] Test light/dark/system theme
+- [ ] Run the manual checks in docs/QA_CHECKLIST.md
 
 ### 8. Privacy & Security
 - [ ] No data collection beyond what's stated in Privacy Policy

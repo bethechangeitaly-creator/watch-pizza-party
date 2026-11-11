@@ -13,24 +13,24 @@ Detailed Description (16,000 characters max)
 
 🍕 Watch Together, Stay Connected
 
-Watch Pizza Party brings people together for synchronized Netflix and YouTube watch parties. Whether you're watching with friends across the country or someone special on the other side of the world, our extension keeps everyone perfectly in sync.
+Watch Pizza Party brings people together for synchronized Netflix and YouTube watch parties. Whether you're watching with friends across the country or someone special on the other side of the world, everyone stays in sync automatically.
 
 ✨ Key Features
 
-• Perfect Synchronization - Advanced sync engine keeps everyone watching at the same moment
+• Stays in sync automatically - small drift is smoothed out, big jumps are followed instantly
 • Real-Time Chat - Chat with your party while you watch
 • Free Pizza Server - Our hosted server means no setup required
 • Netflix & YouTube Support - Works on both major streaming platforms
 • Dark & Light Modes - Switch between cinema mode and bright mode
-• Volume Boost - Amplify quiet audio up to 600%
+• Volume Boost - Make quiet videos up to 3× louder, without distortion
 • Host Controls - Party host controls playback for everyone
-• Privacy-First - Anonymous usernames, no accounts required
+• Privacy-First - Anonymous names, no accounts, chat kept in server memory only
 
 🚀 How It Works
 
-1. Open Netflix or YouTube
-2. Click the Watch Pizza Party icon
-3. Create or join a party with a room code
+1. Open a Netflix or YouTube video
+2. Click the Watch Pizza Party icon — the side panel opens
+3. Start a party (or join one with a room code)
 4. Share the code with friends
 5. Enjoy watching together!
 
@@ -55,7 +55,7 @@ Watch Pizza Party brings people together for synchronized Netflix and YouTube wa
 
 Our free Pizza Server hosts your watch parties so you don't need technical setup. Friends can join from anywhere in the world. The server is hosted in Frankfurt, Germany with automatic cold-start (wakes up in ~30 seconds when needed).
 
-Advanced users can also run a local server for private networks.
+Advanced users can also point the extension at their own server.
 
 💡 Tips for Best Experience
 
@@ -68,9 +68,17 @@ Advanced users can also run a local server for private networks.
 
 • Manifest V3 (latest Chrome extension standard)
 • WebSocket-based real-time synchronization
-• Platform-specific sync profiles (Netflix/YouTube optimized)
-• Adjustable sync flexibility (0-100 scale)
+• Clock-synchronized playback timeline with per-platform correction (Netflix/YouTube)
+• Rejoin automatically after a network blip, without losing your place or host role
 • In-memory room storage (no database)
+
+🆕 What's new in 2.0
+
+• Smoother sync: viewers adjust playback speed slightly instead of jumping around
+• Your spot is saved: reconnect after a network blip and stay in the party (and stay host)
+• Chat history: friends who join late see what was said
+• A cleaner, calmer side panel with a chat-first layout and light/dark themes
+• Safer by design: room codes can't be used to take over the host, and the extension never switches your tabs
 
 ❤️ Support Development
 
@@ -101,7 +109,7 @@ Privacy Policy URL
 https://raw.githubusercontent.com/bethechangeitaly-creator/watch-pizza-party/main/PRIVACY_POLICY.md
 
 Single Purpose Description (for Chrome Web Store Review)
-This extension enables synchronized watch parties on Netflix and YouTube with real-time chat, allowing users to watch videos together with perfect synchronization.
+This extension enables synchronized watch parties on Netflix and YouTube with real-time chat, so friends in different places can watch the same video at the same moment.
 
 Justification for Permissions
 
@@ -112,8 +120,8 @@ Required Permissions:
    - Justification: Essential for identifying the active video player
 
 2. storage
-   - Purpose: Save user preferences (server selection, username, sync settings)
-   - Justification: Persist settings across browser sessions
+   - Purpose: Remember the current party (room token), the chat of the current party, and preferences (theme, chat sounds, server address)
+   - Justification: Reconnect to the same party after a browser or network interruption
 
 3. scripting
    - Purpose: Inject content scripts to interact with video players
@@ -127,9 +135,9 @@ Required Permissions:
    - Purpose: Access video player elements for synchronization
    - Justification: Extension only works on these streaming sites
 
-6. tabCapture (optional)
-   - Purpose: Enable volume boost feature
-   - Justification: Amplify audio for users who need it
+6. tabCapture
+   - Purpose: Volume boost
+   - Justification: Only used when the user turns volume boost on, for the party tab only; audio is processed locally and never sent anywhere
 
 7. offscreen
    - Purpose: Audio processing for volume boost

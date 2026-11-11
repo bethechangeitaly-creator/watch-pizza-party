@@ -4,102 +4,61 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Watch Party Codex is a Chrome Extension (Manifest V3) + Node.js backend for synchronized watch parties. It provides real-time chat and manual sync coordination across streaming platforms (Netflix, YouTube). The project uses **compliance-first** design: no script injection into streaming sites, no DOM modification of players, no DRM/EME bypassing.
+Watch Pizza Party is a Chrome extension (Manifest V3) plus a Node.js server for synchronized YouTube and Netflix watch parties with chat. Version 2 uses protocol v2: server-issued identity tokens, a server-owned playback timeline, and clock-synced correction on viewers.
+
+**What the extension does to pages (be accurate about this — it matters for store review):** a MAIN-world script (`player-bridge.js`) calls the YouTube and Netflix player APIs for play/pause/seek; the content script reads the `<video>` element and adds a floating bubble to the page. It does not touch DRM/EME, does not download or capture video, and only captures tab audio when the user turns on volume boost.
 
 ## Monorepo Structure
 
-- **`apps/extension`** — Chrome Extension (React 18, Vite, Tailwind CSS, Socket.io-client)
-- **`apps/server`** — Backend (Express, Socket.io, in-memory room state)
-- **`packages/shared`** — Shared Zod schemas and TypeScript types (`@watch-party/shared`)
+- `apps/extension` — Chrome extension (React 18, Vite 5, Tailwind 3, socket.io-client)
+- `apps/server` — Express + Socket.IO server, all state in memory
+- `packages/shared` — Zod protocol schemas and pure logic shared by both (`@watch-party/shared`)
+- `e2e` — Playwright end-to-end tests (real Chromium + the built extension + YouTube)
 
-Workspace management uses **npm workspaces** (configured in root `package.json`). A `pnpm-workspace.yaml` exists for pnpm compatibility. Package names follow `@watch-party/*` convention.
+npm workspaces. Package names use `@watch-party/*`.
 
-## Build & Development Commands
+## Commands
 
 ```bash
-# Install dependencies
-pnpm install       # or: npm install
-
-# Start server (builds shared package first, then runs server with hot-reload)
-npm run dev:server
-
-# Build the Chrome extension
-npm run build:extension
-
-# Run tests across all workspaces
-npm test
-
-# Per-workspace commands
-cd apps/server && pnpm dev          # Server dev mode (ts-node-dev, port 3005 by default)
-cd apps/server && pnpm build        # Compile server TypeScript to dist/
-cd apps/extension && pnpm build     # TypeScript check + Vite production build
-cd apps/extension && pnpm dev       # Vite dev server for extension
-
-# Docker
-docker-compose up -d                # Server on port 3001
+npm install
+npm test                      # unit + server integration tests (Vitest), all workspaces
+npm run e2e                   # Playwright: builds everything, starts a server on :3105, real YouTube sync
+npm run dev:server            # server with hot reload (builds shared first), port 3005
+npm run build:server
+npm run build:extension       # tsc + vite (pages/worker) + classic content scripts + dist guard
+VITE_SERVER_URL=https://… npm run package:extension   # release/watch-pizza-party-<version>.zip
 ```
 
-After building the extension, load `apps/extension/dist` as an unpacked extension in `chrome://extensions/`.
+Load `apps/extension/dist` as an unpacked extension in `chrome://extensions` for manual testing.
 
 ## Architecture
 
 ```
-Chrome Extension                         Node.js Server
-┌──────────────────────────┐             ┌──────────────────────┐
-│  Side Panel / Popup      │             │  Express REST API    │
-│  (React UI)              │             │  POST /rooms         │
-│         ↕ chrome.runtime │             │  GET  /rooms/:id     │
-│  Background Service Worker│◄──Socket.io──►  WebSocket Handler │
-│  (single WS connection)  │             │  (wsHandler.ts)      │
-│         ↕ chrome.runtime │             │         ↕            │
-│  Content Script          │             │  RoomManager         │
-│  (video page interaction)│             │  (in-memory state)   │
-└──────────────────────────┘             └──────────────────────┘
+Side panel (React, src/panel) ──runtime messages──► Background service worker (src/background)
+                                                     │  SessionController: identity, token, room state
+Content script (src/content, media tab only) ◄──────┤  ServerConnection: Socket.IO + clock sync
+  HostReporter (host) / ViewerFollower (viewers)    │
+  player-bridge.js (MAIN world) for player APIs     └──Socket.IO──► Server: RoomStore + socketHandlers
 ```
 
-**Extension internal messaging**: React UI ↔ Background Service Worker ↔ Content Script, all via `chrome.runtime.sendMessage()`.
+- **Typed contract:** every message between panel, background and content is in `src/lib/messages.ts`; every client↔server message is validated by `ClientMessageSchema` / `ServerMessageSchema` in `packages/shared/src/protocol.ts`.
+- **Identity:** `POST /rooms` and `room.join` return a token; resuming with the token keeps id, name and host role. Display names are never identity (duplicates become `Name 2`).
+- **Presence:** members stay 30 s after their last socket drops (`reconnecting`), then are removed; the host migrates to the earliest connected member. Empty rooms are deleted after 30 min, with all their state (one `RoomRecord` per room).
+- **Sync:** the host samples its player every 250 ms and sends `sync.host_update` on change (+5 s heartbeat). The server assigns `rev`, clamps the anchor time and broadcasts `sync.timeline`. Viewers compute the expected position from the timeline + clock offset and run `decideCorrection` (`packages/shared/src/sync/controller.ts`): rate nudge for small drift, seek for large drift, per-platform profiles.
+- **Media tab:** bound explicitly on start/join/"Use this tab". Viewers are only ever navigated to `canonicalWatchUrl(platform, mediaId)`. Content scripts run no timers unless activated for the bound tab.
+- **Limits:** 16 KiB frames, Zod max lengths, per-socket token buckets and per-IP limits (`apps/server/src/rateLimit.ts`).
 
-**Extension ↔ Server**: Single persistent WebSocket (Socket.io) managed by the background service worker.
+## Conventions
 
-### Key Extension Files
+- Shared package must be built before the server (`dev:server` / `build:server` do it).
+- `dist/content.js` and `dist/player-bridge.js` must stay classic scripts; `scripts/check-dist.mjs` enforces this, forbids new manifest permissions (Chrome would disable the extension on update) and forbids `chrome.tabs.update(..., { active: true })`.
+- UI uses the design tokens in `src/index.css` / `tailwind.config.js` only; `src/uiRules.test.ts` fails on arbitrary text sizes, gradients, coloured glows, raw hex colours.
+- Tests first (Vitest). Server tests are real Socket.IO integration tests with an injectable clock (`apps/server/test/helpers.ts`).
 
-- `src/background.ts` (~3000 lines) — Service worker: WebSocket connection, session management, sync engine orchestration
-- `src/content.ts` (~1260 lines) — Content script injected on Netflix/YouTube pages: video player interaction, floating bubble UI
-- `src/App.tsx` — Main React app with session state management
-- `src/components/Landing.tsx` — Room creation/join UI
-- `src/components/RoomView.tsx` — Main room interface during active session
-- `src/components/Chat.tsx` — Real-time chat
+## Environment Variables (server)
 
-### Server State
+- `PORT` — default 3005 (3001 in Docker)
+- `GIPHY_API_KEY` — enables `GET /gifs`; without it the GIF button is hidden
+- `ALLOWED_ORIGINS` — extra CORS origins (comma separated); `chrome-extension://*` and localhost are always allowed
 
-Rooms are held **in-memory** (no database). Rooms expire 5 minutes after the last user leaves. A cleanup job runs every 60 seconds. Chat history is capped at 100 messages per room. Host role migrates automatically on disconnect.
-
-### WebSocket Protocol
-
-All messages are validated with Zod schemas in `packages/shared/src/schemas.ts`. Message types use dot-notation namespacing:
-- **Room**: `room.join`, `room.state`, `room.update_url`
-- **Sync**: `sync.host_snapshot`, `sync.force_snapshot`, `sync.viewer_status`, `sync.navigate`, `sync.set_reference_time`, `sync.play_intent`, `sync.pause_intent`, `sync.system_event`
-- **Chat**: `chat.send`, `chat.message`
-
-### Sync Engine
-
-The sync engine in `background.ts` has configurable aggression (0–100 scale) and platform-specific profiles (`auto`, `youtube`, `netflix`, `other`). Host broadcasts snapshots at intervals (1.3s when playing, 12s when paused); viewers detect drift and auto-correct. Special handling exists for Netflix seek cooldowns and YouTube playback rate quirks.
-
-## Environment Variables
-
-- `PORT` — Server port (default: 3005 in dev, 3001 in Docker)
-- `NODE_ENV` — `production` or `development`
-
-## TypeScript Configuration
-
-- Extension: ESNext target, bundler module resolution, `react-jsx`, chrome types
-- Server: ESNext target, CommonJS output to `dist/`
-- Shared: ESNext target, CommonJS with declaration files to `dist/`
-- All packages use path aliases to resolve `@watch-party/shared`
-
-## Important Conventions
-
-- The shared package **must be built before** the server (the `dev:server` script handles this automatically)
-- User display names are randomly generated as `Color_Fruit` combinations with associated hex colors (see `generateRandomName()` in shared schemas)
-- The extension supports incognito mode with isolated session storage
-- Vite config uses multi-entry build for popup, content script, and background service worker with separate output bundles
+Extension build: `VITE_SERVER_URL` sets the server it talks to.

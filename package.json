@@ -1,7 +1,7 @@
 {
     "name": "watch-party-companion",
     "private": true,
-    "version": "1.2",
+    "version": "2.0.0",
     "workspaces": [
         "apps/*",
         "packages/*",
@@ -13,7 +13,8 @@
         "start:server": "NODE_ENV=production node apps/server/dist/index.js",
         "build:extension": "npm run build --workspace=@watch-party/extension",
         "test": "npm test --workspaces --if-present",
-        "e2e": "npm run e2e --workspace=@watch-party/e2e"
+        "e2e": "npm run e2e --workspace=@watch-party/e2e",
+        "package:extension": "node scripts/package-extension.mjs"
     },
     "devDependencies": {
         "typescript": "^5.3.3",

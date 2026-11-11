@@ -9,14 +9,14 @@ A Chrome Extension (Manifest V3) + Node.js backend for synchronized watch partie
 
 ## ✨ Features
 
-- 🎬 **Perfect Synchronization** - Advanced sync engine keeps everyone watching at the same moment
+- 🎬 **Stays in sync automatically** - Small drift is corrected smoothly, big jumps are followed instantly
 - 💬 **Real-Time Chat** - Chat with your party while you watch
 - 🍕 **Free Pizza Server** - Hosted server at https://watch-pizza-party.onrender.com (no setup required!)
 - 📺 **Netflix & YouTube Support** - Works on both major streaming platforms
 - 🌓 **Dark & Light Modes** - Switch between cinema mode and bright mode
-- 🔊 **Volume Boost** - Amplify quiet audio up to 600%
+- 🔊 **Volume Boost** - Make quiet videos up to 3× louder, with a limiter so it doesn't distort
 - 👑 **Host Controls** - Party host controls playback for everyone
-- 🔒 **Privacy-First** - Anonymous usernames, no accounts required, no data collection
+- 🔒 **Privacy-First** - Anonymous names, no accounts, chat lives in server memory only
 
 ## 🚀 Quick Start
 
@@ -24,8 +24,8 @@ A Chrome Extension (Manifest V3) + Node.js backend for synchronized watch partie
 
 1. Install the extension from Chrome Web Store *(coming soon)*
 2. Open Netflix or YouTube
-3. Click the Watch Pizza Party icon
-4. Create or join a party with a room code
+3. Click the Watch Pizza Party icon (the side panel opens)
+4. Start a party, or join one with a room code
 5. Enjoy watching together! 🍕
 
 ### For Developers
@@ -39,6 +39,10 @@ npm run dev:server
 
 # Build the Chrome extension
 npm run build:extension
+
+# Run the tests
+npm test        # unit + server integration
+npm run e2e     # real-browser YouTube sync test (Playwright)
 
 # Load extension in Chrome
 # 1. Go to chrome://extensions/
@@ -59,8 +63,8 @@ npm run build:extension
 
 1. **Host** creates a room and gets a room code
 2. **Viewers** join using the room code
-3. Extension syncs video playback state in real-time
-4. Everyone watches together with perfect synchronization
+3. The host's player state is shared as a timeline; every viewer's clock is synced to the server
+4. Viewers correct small drift by nudging playback speed and seek only for big jumps
 5. Chat while you watch!
 
 ## 🎯 Use Cases
@@ -75,11 +79,12 @@ npm run build:extension
 ## 🔒 Privacy & Security
 
 - ✅ No account or login required
-- ✅ Anonymous pizza-themed usernames (e.g., "Red_Pepperoni")
+- ✅ Anonymous pizza-themed names (e.g., "Basil Burrata")
 - ✅ All data deleted after session ends
 - ✅ Encrypted connections (HTTPS/WSS)
 - ✅ Open source and transparent
 - ✅ No analytics, no tracking, no ads
+- ✅ GIF search goes through our server, so your searches aren't tied to you at Giphy
 
 See our [Privacy Policy](PRIVACY_POLICY.md) for details.
 
@@ -88,23 +93,16 @@ See our [Privacy Policy](PRIVACY_POLICY.md) for details.
 ```
 watch-pizza-party/
 ├── apps/
-│   ├── extension/          # Chrome Extension (React + Vite)
-│   │   ├── src/
-│   │   │   ├── background.ts     # Service worker (~3000 lines)
-│   │   │   ├── content.ts        # Content script (~1260 lines)
-│   │   │   ├── App.tsx           # Main React app
-│   │   │   ├── components/       # React components
-│   │   │   └── ...
-│   │   └── dist/                 # Build output
-│   └── server/             # Node.js Backend
-│       ├── src/
-│       │   ├── index.ts          # Express server
-│       │   ├── wsHandler.ts      # WebSocket handler
-│       │   └── roomManager.ts    # Room state management
-│       └── dist/                 # Build output
-├── packages/
-│   └── shared/             # Shared TypeScript types & Zod schemas
-└── docker-compose.yml      # Docker setup
+│   ├── extension/             # Chrome extension (React + Vite)
+│   │   └── src/
+│   │       ├── background/    # Service worker: session, connection, media tab, volume boost
+│   │       ├── content/       # Content script: player adapters, host reporter, viewer follower, bubble
+│   │       ├── panel/         # Side panel UI
+│   │       └── lib/           # Message contract shared by the three
+│   └── server/                # Express + Socket.IO (RoomStore, socket handlers, GIF proxy)
+├── packages/shared/           # Protocol schemas, media ids, clock sync, sync controller
+├── e2e/                       # Playwright end-to-end tests
+└── docker-compose.yml
 ```
 
 ## 🌐 Production Deployment
@@ -114,7 +112,7 @@ watch-pizza-party/
 - Auto-deploys from GitHub main branch
 - Hosted on Render.com (Frankfurt, Germany)
 - Free tier with automatic cold-start (~30 seconds)
-- In-memory room storage (rooms expire 5 minutes after last user leaves)
+- In-memory room storage (rooms are deleted 30 minutes after the last person leaves)
 
 ## 🧪 Development
 
@@ -127,9 +125,10 @@ npm run build:extension
 
 # Run tests
 npm test
+npm run e2e
 
-# Build everything
-npm run build
+# Package the extension for the Chrome Web Store
+VITE_SERVER_URL=https://your-server.example npm run package:extension
 ```
 
 ## 🐳 Docker
@@ -146,8 +145,8 @@ docker-compose up -d
 ```bash
 # Server configuration
 PORT=3005              # Server port (default: 3005)
-NODE_ENV=production    # Environment mode
-CORS_ORIGIN=*          # CORS origin (default: *)
+GIPHY_API_KEY=         # Enables GIF search (the key stays on the server)
+ALLOWED_ORIGINS=       # Extra CORS origins; chrome-extension:// and localhost are always allowed
 ```
 
 ## 🤝 Contributing
