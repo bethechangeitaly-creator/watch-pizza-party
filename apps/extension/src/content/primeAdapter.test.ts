@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPrimeAdapter } from './adapters';
 
 const PAGE = 'https://www.primevideo.com/detail/0L8YQ591BLZ0VTAHS228HDGRIP';
@@ -62,14 +62,52 @@ describe('Prime Video adapter', () => {
         expect(prime.snapshot()!.positionSec).toBeCloseTo(87.3, 0);
     });
 
-    it('jumps to episode time, adding the ads back', () => {
+    it('small corrections (under 10 s) move the video directly, adding the ads back', () => {
         const p = page();
         const prime = createPrimeAdapter(document, loc(), always);
         p.episode.currentTime = 127.3;
         p.showControls('01:27', '53:50');
         prime.snapshot();
-        prime.seek(200);
-        expect(p.episode.currentTime).toBeCloseTo(240, 0);
+        prime.seek(92.5); // 5 s ahead in episode time
+        expect(p.episode.currentTime).toBeCloseTo(132.3, 0);
+    });
+
+    describe('big jumps go through Prime’s own arrow keys (direct jumps can break its player)', () => {
+        beforeEach(() => { vi.useFakeTimers(); });
+        afterEach(() => { vi.useRealTimers(); });
+
+        it('presses → once per 10 s, spaced out, and reports catching up meanwhile', () => {
+            const p = page();
+            const prime = createPrimeAdapter(document, loc(), always);
+            const keys: string[] = [];
+            document.querySelector('#dv-web-player')!.addEventListener('keydown', (e) => keys.push((e as KeyboardEvent).key));
+            p.episode.currentTime = 100;
+            prime.snapshot();
+            prime.seek(160); // 60 s ahead
+            expect(p.episode.currentTime).toBe(100); // never set directly
+            expect(prime.snapshot()!.buffering).toBe(true);
+            vi.advanceTimersByTime(6 * 300 + 50);
+            expect(keys).toEqual(Array(6).fill('ArrowRight'));
+            vi.advanceTimersByTime(2000);
+            expect(prime.snapshot()!.buffering).toBe(false);
+        });
+
+        it('jumps back with ←, and a new jump replaces one in progress', () => {
+            const p = page();
+            const prime = createPrimeAdapter(document, loc(), always);
+            const keys: string[] = [];
+            document.querySelector('#dv-web-player')!.addEventListener('keydown', (e) => keys.push((e as KeyboardEvent).key));
+            p.episode.currentTime = 500;
+            prime.snapshot();
+            prime.seek(200); // 30 presses back
+            vi.advanceTimersByTime(3 * 300);
+            prime.seek(470); // changed mind: only 3 back from here
+            vi.advanceTimersByTime(20 * 300);
+            expect(keys.every((k) => k === 'ArrowLeft')).toBe(true);
+            expect(keys.length).toBeGreaterThanOrEqual(4);
+            expect(keys.length).toBeLessThanOrEqual(3 + 1 + 3);
+            expect(p.episode.currentTime).toBe(500);
+        });
     });
 
     it('shows title and episode from the player, and keeps them when the controls hide', () => {

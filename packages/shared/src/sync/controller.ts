@@ -48,7 +48,8 @@ export function decideCorrection(input: {
 
     // The viewer's own ad can't be skipped; if it sits paused while the host plays, let it run so it ends.
     if (player.inAd) return { driftSec, state: 'ad', actions: player.paused && !target.paused ? [{ type: 'play' }] : [] };
-    if (player.buffering) return { driftSec, state: 'buffering', actions: [] };
+    // Loading (or a Prime jump in progress): no seeks, but a host pause must still reach the viewer.
+    if (player.buffering) return { driftSec, state: 'buffering', actions: target.paused && !player.paused ? [{ type: 'pause' }] : [] };
 
     const actions: SyncAction[] = [];
 

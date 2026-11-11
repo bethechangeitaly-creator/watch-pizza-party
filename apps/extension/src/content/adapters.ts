@@ -93,6 +93,9 @@ export function createNetflixAdapter(doc: Document, loc: Location): PlayerAdapte
 // load); ads are stitched into the same element and show ".atvwebplayersdk-ad-timer-remaining-time".
 
 const PRIME_AD_TIMER = '.atvwebplayersdk-ad-timer-remaining-time';
+const PRIME_STEP_SEC = 10; // one ←/→ press on Prime's player
+const PRIME_PRESS_MS = 300; // presses closer than this collapse into one
+const PRIME_SETTLE_MS = 1500;
 const CLOCK_TEXT = /^\s*(?:(\d+):)?(\d{1,2}):(\d{2})\s*$/;
 
 export function parseClock(text: string | null | undefined): number | null {
@@ -110,6 +113,17 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
     let lastTitle: string | undefined;
     let titleFor: string | null = null; // which video lastTitle belongs to
     let lastOpenAt = -Infinity;
+    let pressTimer: ReturnType<typeof setTimeout> | null = null;
+    let jumpingUntil = 0;
+
+    /** Prime's own ←/→ keys (10 s each), dispatched on its player: Prime then does the jump itself. */
+    const pressArrow = (root: Element, forward: boolean) => {
+        const key = forward ? 'ArrowRight' : 'ArrowLeft';
+        const keyCode = forward ? 39 : 37;
+        for (const type of ['keydown', 'keyup']) {
+            root.dispatchEvent(new KeyboardEvent(type, { key, code: key, keyCode, which: keyCode, bubbles: true, cancelable: true }));
+        }
+    };
 
     const player = () => {
         const root = doc.querySelector('#dv-web-player');
@@ -157,13 +171,36 @@ export function createPrimeAdapter(doc: Document, loc: Location, visible: (el: E
             const r = read();
             if (!r) return null;
             const { v } = r;
-            return { positionSec: clock.toContent(v.currentTime), paused: v.paused, rate: 1, buffering: !v.paused && v.readyState < 3, inAd: r.inAd };
+            const jumping = Date.now() < jumpingUntil;
+            return { positionSec: clock.toContent(v.currentTime), paused: v.paused, rate: 1, buffering: jumping || (!v.paused && v.readyState < 3), inAd: r.inAd };
         },
         play: () => { void player()?.play().catch(() => {}); },
         pause: () => { player()?.pause(); },
         seek: (sec) => {
             const v = player();
-            if (v) v.currentTime = clock.toStream(sec);
+            const root = doc.querySelector('#dv-web-player');
+            if (!v || !root) return;
+            if (pressTimer) clearTimeout(pressTimer);
+            pressTimer = null;
+            const delta = sec - clock.toContent(v.currentTime);
+            // Measured: setting currentTime far away can leave Prime's player loading forever and then
+            // "Video not available". Small nudges are fine; big jumps go through Prime's own arrow keys,
+            // one press per 10 s, spaced out (a burst counts as a single press).
+            if (Math.abs(delta) < PRIME_STEP_SEC) {
+                v.currentTime = clock.toStream(sec);
+                return;
+            }
+            let presses = Math.round(Math.abs(delta) / PRIME_STEP_SEC);
+            jumpingUntil = Date.now() + presses * PRIME_PRESS_MS + PRIME_SETTLE_MS;
+            const step = () => {
+                if (presses-- <= 0) {
+                    pressTimer = null;
+                    return;
+                }
+                pressArrow(root, delta > 0);
+                pressTimer = setTimeout(step, PRIME_PRESS_MS);
+            };
+            step();
         },
         setRate: () => {
             // Prime profile never nudges the rate.
