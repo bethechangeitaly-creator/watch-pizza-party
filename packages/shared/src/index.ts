@@ -18,3 +18,4 @@ export {
 export * from './media';
 export * from './names';
 export * from './protocol';
+export * from './sync/clock';
