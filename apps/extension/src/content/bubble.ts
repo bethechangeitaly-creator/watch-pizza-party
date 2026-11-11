@@ -17,6 +17,7 @@ const CSS = `
 }
 .open:focus-visible { outline: 2px solid rgb(242 107 58); outline-offset: 2px; }
 .icon { width: 24px; height: 24px; border-radius: 6px; display: block; }
+.pizza { font-size: 20px; line-height: 24px; text-align: center; }
 .count { display: flex; align-items: center; gap: 4px; color: rgb(179 154 148); }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: rgb(179 154 148); }
 .dot.on { background: rgb(110 231 164); }
@@ -111,6 +112,13 @@ export function createBubble(
             img.className = 'icon';
             img.src = iconUrl;
             img.alt = '';
+            // Never show a broken-image icon: fall back to the pizza emoji.
+            img.addEventListener('error', () => {
+                const pizza = doc.createElement('span');
+                pizza.className = 'icon pizza';
+                pizza.textContent = '🍕';
+                img.replaceWith(pizza);
+            });
             open.appendChild(img);
         }
         const count = doc.createElement('span');

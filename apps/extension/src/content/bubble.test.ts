@@ -16,6 +16,15 @@ afterEach(() => {
 });
 
 describe('bubble', () => {
+    it('shows a pizza instead of a broken image if the logo cannot load', () => {
+        const b = createBubble(document, { onOpen: vi.fn(), onDismiss: vi.fn() }, storage, 'chrome-extension://invalid/icon32.png');
+        b.render(state);
+        const img = shadow().querySelector('img')!;
+        img.dispatchEvent(new Event('error'));
+        expect(shadow().querySelector('img')).toBeNull();
+        expect(shadow().textContent).toContain('🍕');
+    });
+
     it('renders and hides', () => {
         const b = createBubble(document, { onOpen: vi.fn(), onDismiss: vi.fn() }, storage);
         b.render(state);

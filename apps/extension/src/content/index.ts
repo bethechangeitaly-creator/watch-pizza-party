@@ -2,6 +2,8 @@ import type { BackgroundToContent, ContentToBackground } from '../lib/messages';
 import { adapterFor } from './adapters';
 import { isAlive, markAlive, runtimeAlive } from './alive';
 import { createBubble } from './bubble';
+// Embedded in the script, so the logo still shows after the extension is reloaded or updated.
+import iconUrl from '../../public/icon32.png?inline';
 import { HostReporter } from './hostReporter';
 import { ViewerFollower } from './viewerFollower';
 
@@ -71,7 +73,7 @@ const TICK_MS = 250;
                         onDismiss: () => send({ type: 'content.dismissBubble' }),
                     },
                     localStorage,
-                    chrome.runtime.getURL('icon32.png'),
+                    iconUrl,
                 );
                 bubble.render(message.bubble);
                 break;
