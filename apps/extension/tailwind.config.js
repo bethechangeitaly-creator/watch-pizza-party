@@ -2,7 +2,9 @@
 const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
 
 export default {
-    content: ['./index.html', './src/**/*.{ts,tsx}'],
+    content: ['./index.html', './popup.html', './src/**/*.{ts,tsx}'],
+    // `dark:` follows the app's own theme switch (data-theme on <html>), not only the OS.
+    darkMode: ['selector', '[data-theme="dark"]'],
     theme: {
         colors: {
             transparent: 'transparent',
