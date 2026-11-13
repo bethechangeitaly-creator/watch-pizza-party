@@ -74,10 +74,13 @@ Advanced users can also point the extension at their own server.
 
 🆕 What's new in 2.0
 
-• Smoother sync: viewers adjust playback speed slightly instead of jumping around
+• Prime Video support: watch together on Prime Video too (access is asked only the first time you use it)
+• Smoother sync: viewers catch up on their own, and nobody gets pulled into someone else's ads
 • Your spot is saved: reconnect after a network blip and stay in the party (and stay host)
-• Chat history: friends who join late see what was said
-• A cleaner, calmer side panel with a chat-first layout and light/dark themes
+• Chat history: friends who join late see what was said, with chat sounds back
+• A refreshed design with a warm light theme and a dark Night theme for movie nights
+• The toolbar popup is back, with the volume slider right there
+• Stronger Volume Boost, up to 600%
 • Safer by design: room codes can't be used to take over the host, and the extension never switches your tabs
 
 ❤️ Support Development
